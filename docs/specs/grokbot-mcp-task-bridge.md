@@ -4,6 +4,15 @@
 状态：用户已确认测试边界与工单拆分；已发布为 [GitHub #1](https://github.com/semantic-craft/grokbot-to-codex/issues/1)。实施工单见 [工单索引](grokbot-mcp-tickets.md)。
 工单标签：`ready-for-agent`（已应用；阻塞关系与条件另行约束领取）。
 
+## 2026-10-07 接入方式修订（用户明确指定）
+
+优先交付 GrokBot 插件的本机调用效果。用户接受插件／私有技能复用 GrokBot 已有本机 Shell 能力，调用本机桥；不再要求 GrokBot 原生 stdio MCP 安装作为第一阶段前置条件。下文关于“GrokBot MCP 入口／Command MCP 安装”的约束以本修订为准，其他执行、权限及结果验收要求保留。
+
+- 首个接入包封装本机派活、查询、等待和打开官方 Desktop 的流程，保存后可从 GrokBot 技能入口调用。实际执行程序与任务状态仍留在本机；技能文字可存于 GrokBot 的私有技能库。
+- 验收链路改为：亚里士多德发现并调用已安装技能 → 明确选择用户 Mac 的本机 Shell → 本机工具／MCP 进程 → 桥 → 官方 app-server → 实际结果 → 官方 Desktop 同会话。不能用云端命令成功替代本机执行，也不能只交付一段每次手动复制的提示词。
+- 原生 MCP 客户端仍可复用已有 stdio 接口，但其宿主运行位置与安装验证单独记录，不阻塞上述插件路径。通知与 Codex／ChatGPT 新入口仍后置。
+- 本次优先验收插件的最小只读闭环；持久化、取消、续接、受控写入等后续工单的完成标准不因插件封装而自动通过。
+
 ## Problem Statement
 
 用户希望在 GrokBot 中自然语言派活给本机 Codex，并取得真实进度、结果，必要时在官方 Codex Desktop 打开同一会话继续工作。当前已通过本地 CLI 派活测试，但每次仍需让 GrokBot 拼命令、轮询状态；服务依赖手动启动，功能限于只读可见性验证。
