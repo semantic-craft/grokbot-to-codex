@@ -25,7 +25,8 @@ The public page establishes this behavior, not its complete internal tool schema
 
 This section is a recommendation, not shipped behavior.
 
-**Name:** to codex  
+**Name:** Dr. CodexBot
+
 **Role:** Send supported tasks to Codex on the user's Mac, retrieve actual answers, and hand released conversations to Codex Desktop.
 
 Suggested user-visible introduction:
