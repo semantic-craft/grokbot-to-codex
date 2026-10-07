@@ -40,6 +40,14 @@ node bridge.mjs submit chatbot-probe-001 '不要调用工具，不要读取或�
 
 这段提示词要求 chatbot 已有**这台 Mac 的本地命令执行能力**。仅能访问云端终端或远程 MCP 的 chatbot 无法通过文字提示访问本机 `127.0.0.1`；该情况下尚需配置连接器，本原型不偷偷开放公网。
 
+## GrokBot 插件入口：私有技能＋本机 Shell
+
+优先安装本仓库提供的私有技能 **codex-local**，复用 GrokBot 已有的 Mac Shell 能力。用户选择技能并描述目标，Bot 自动检查本机服务、提交、查询结果，并在会话释放后按要求打开官方 Desktop。
+
+[安装与验收说明](plugins/grokbot-to-codex/INSTALL.md) · [技能源码](plugins/grokbot-to-codex/skills/codex-local/SKILL.md)
+
+该入口调用既有 MCP smoke 客户端，但不要求 GrokBot 先注册原生 MCP 插件。技能的保存、发现和真实执行分别验收；发布源码本身不表示已经安装。下方原生 stdio MCP 仍保留为可选接入方式。
+
 ## GrokBot 本地 MCP 入口
 
 薄适配器已提供 `submit_task`、`get_task`、`list_tasks`、`wait_task`、`open_in_desktop`。
