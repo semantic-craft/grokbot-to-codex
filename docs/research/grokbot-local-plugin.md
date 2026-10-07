@@ -23,3 +23,51 @@ Research date: 2026-10-07. Scope: official Grok Bot (the persistent personal Bot
 For the personal Bot, first confirm the bridge already exists on the user's Mac and identify its documented, bounded CLI invocation. In Grok Bot, respect the existing **Execution on Local Computer** policy; this task does not require changing it. **Ask every time** is the documented default, not a new installation prerequisite. Ask the Bot to save a private skill that calls only that existing command, states allowed arguments and expected output, starts with a read-only status/doctor action if the bridge provides one, and stops for a human decision when a task would expand scope or perform consequential work. Test by invoking the skill in a direct Bot conversation and verify that the prompt explicitly requests local command execution and that the observed result came from the bridge. Do not claim success from a cloud-computer command, an installed Marketplace connector, a queued message, or a routine status alone.
 
 This is an operational pattern derived from xAI's documented private-skill and local-approval features plus CUA's example. The available primary sources do **not** provide an official personal-Bot API or local path for installing an arbitrary plugin/skill package, nor an official shell-tool schema or local bridge tool name. No third-party package was installed and no Grok UI/runtime action was performed by this research.
+
+## Cursor Plugin route for distributable Grok Bot skills
+
+The current Cursor plugin schema provides stronger compatibility evidence than the example repositories: `minClientVersions` recognizes the client key `grokbot` (with a documented minimum-version value or `"never"` to hide the plugin). The Cursor docs say plugins are Git-repository bundles submitted for manual review, and describe both personal Grok Bot Marketplace installation and local-computer command approval elsewhere. Together these support a distributable Cursor Plugin that packages a skill intended for Grok Bot. They do not prove that a skill can bypass Grok Bot's local-command approval, that any private/local Grok Bot import path exists, or that a submission is already accepted/listed. [Cursor plugin schema](https://github.com/cursor/plugins/blob/main/schemas/plugin.schema.json) · [Cursor Plugins docs](https://cursor.com/docs/plugins) · [Cursor Plugins reference](https://cursor.com/docs/reference/plugins) · [xAI local-computer policy](https://docs.x.ai/grok-bot/approvals-security-and-privacy)
+
+### Minimal root-plugin manifest
+
+Since this repository already contains the bridge and `mcp.json`, it can keep the repository root as the plugin root and add only the manifest plus an in-repository Skill directory. The Cursor schema's only required field is `name`; for marketplace readiness, also provide a useful `description`, semantic `version`, `author`, `repository`, and a valid Skill. `skills` accepts a relative path or array of paths and takes precedence over default skill-folder discovery. The Cursor reference calls these paths skill directories; each skill has its own directory and `SKILL.md` with `name` and `description` frontmatter. No MCP registration is needed for the Shell-based path. [Cursor schema](https://github.com/cursor/plugins/blob/main/schemas/plugin.schema.json) · [Cursor reference: manifest and skill paths](https://cursor.com/docs/reference/plugins)
+
+Example for the current repository layout (adjust the skill path if it changes):
+
+```json
+{
+  "$schema": "https://cursor.com/schemas/cursor-plugin/plugin.json",
+  "name": "codex-task-bridge",
+  "displayName": "Codex Task Bridge",
+  "version": "0.1.0",
+  "description": "Run the local Codex bridge from Grok Bot with per-command local approval.",
+  "author": { "name": "Codex Task Bridge" },
+  "repository": "https://github.com/<owner>/codex-task-bridge",
+  "skills": "./plugins/grokbot-to-codex/skills"
+}
+```
+
+The repository is the plugin root, so the skill path must resolve inside it. Cursor's submission checklist disallows absolute paths and parent traversal (`..`); a pointer to a skill outside this repository is not a valid distributable package. The path above follows the stated reusable directory location but still needs a local manifest/skill validation against the actual files before implementation is considered accepted. [Cursor reference: submission checklist and skill structure](https://cursor.com/docs/reference/plugins) · [official plugin review skill](https://github.com/cursor/plugins/blob/main/create-plugin/skills/review-plugin-submission/SKILL.md)
+
+### Marketplace record and release status
+
+For a **single plugin at the repository root**, Cursor's documented route is to host the public Git repository and submit its URL at `cursor.com/marketplace/publish`; a separate `.cursor-plugin/marketplace.json` is for a multi-plugin repository and is not needed merely to describe the one plugin. If the project later provides a multi-plugin marketplace, the official schema requires marketplace `name` and `plugins`; each entry requires a matching plugin `name` plus a relative `source` directory. Example shape for a root plugin:
+
+```json
+{
+  "$schema": "https://cursor.com/schemas/cursor-plugin/marketplace.json",
+  "name": "codex-task-bridge-marketplace",
+  "owner": { "name": "Codex Task Bridge" },
+  "plugins": [
+    { "name": "codex-task-bridge", "source": "." }
+  ]
+}
+```
+
+Treat that as a schema example for a self-managed/multi-plugin marketplace, not a prerequisite for the one-plugin submission route. Submission is followed by Cursor's manual review; only approval and actual listing establish Marketplace availability. [Cursor reference: multi-plugin marketplaces and submit](https://cursor.com/docs/reference/plugins) · [marketplace schema](https://github.com/cursor/plugins/blob/main/schemas/marketplace.schema.json)
+
+### Validation and distribution limits
+
+For Cursor's local-development test, the docs say to copy the plugin to `~/.cursor/plugins/local/<plugin-name>`, reload Cursor, then confirm the skill in Customize. Team/Enterprise administrators can disable local plugin imports, and an installed marketplace plugin with the same name takes precedence over the local copy. This is a Cursor local-load test only; it does not establish a Grok Bot local-install directory. For Grok Bot, the distributable path to verify is its Marketplace after review/listing; use **Plugins → Add** or the currently surfaced equivalent, then test that the packaged Skill invokes the bridge on the user's local computer and receives the normal Grok Bot command approval. Keep the computer setting at Ask every time during that acceptance test. [Cursor local testing and submission docs](https://cursor.com/docs/plugins) · [xAI local-computer policy](https://docs.x.ai/grok-bot/approvals-security-and-privacy)
+
+The official Cursor schema's `grokbot` target makes the common Cursor Plugin proposal technically aligned with the plugin ecosystem. The remaining product-specific unknown is how a private Grok Bot exposes local shell execution to a packaged Skill on each supported desktop/version; validate that in the target Bot UI and on a second clean account before claiming distributable end-to-end behavior. A marketplace review acceptance alone does not prove the bridge CLI is installed, reachable, or approved on another person's computer.
