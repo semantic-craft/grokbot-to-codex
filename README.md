@@ -27,8 +27,6 @@ opens in official Codex Desktop.
 
 [Agent installation guide](INSTALL.md) · [Skill source](plugins/grokbot-to-codex/skills/to-codex/SKILL.md) · [Privacy](PRIVACY.md) · [MIT license](LICENSE)
 
-**Dr. CodexBot** is the dedicated Grok Bot template for this plugin. Its [profile and setup guide](templates/dr-codexbot/README.md) let you create a Bot that owns dispatch, result retrieval and Desktop handoff. See [template acceptance](templates/dr-codexbot/ACCEPTANCE.md) for the live sharing and import status.
-
 ## What you get
 
 - **Grok Bot:** a saved private skill using its existing local-computer Shell tools. Say **“to codex”** and describe the task (or select the saved **to codex** skill).
