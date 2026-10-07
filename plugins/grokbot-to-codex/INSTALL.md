@@ -4,10 +4,10 @@
 
 ## 1. 取得完整包并启动桥
 
-需要 macOS、Node.js 22+、已安装并登录的官方 Codex Desktop。下载本仓库的完整源码或 clone 到你选择的位置（以下目录仅是示例）：
+需要 macOS、Node.js 22+、已安装并登录的官方 Codex Desktop。当前插件是 **预览版**，位于 `integration/grokbot-mcp` 分支；`main` 尚不包含插件。请从[预览分支](https://github.com/semantic-craft/grokbot-to-codex/tree/integration/grokbot-mcp)下载完整源码，或按以下命令 clone 指定分支（目录仅是示例）：
 
 ```sh
-git clone https://github.com/semantic-craft/grokbot-to-codex.git "$HOME/Projects/grokbot-to-codex"
+git clone --branch integration/grokbot-mcp https://github.com/semantic-craft/grokbot-to-codex.git "$HOME/Projects/grokbot-to-codex"
 cd "$HOME/Projects/grokbot-to-codex"
 node -p process.execPath
 node --version
@@ -49,7 +49,7 @@ Cursor 官方文档支持 `~/.cursor/plugins/local/<name>` 本地插件目录并
 
 ```sh
 mkdir -p "$HOME/.cursor/plugins/local"
-git clone https://github.com/semantic-craft/grokbot-to-codex.git "$HOME/.cursor/plugins/local/grokbot-to-codex"
+git clone --branch integration/grokbot-mcp https://github.com/semantic-craft/grokbot-to-codex.git "$HOME/.cursor/plugins/local/grokbot-to-codex"
 ```
 
 目标已存在时先检查，不覆盖。此时第 1 步的运行目录和 `repoPath` 都使用这一插件根目录。在 Cursor 本地窗口重载，检查插件及 `codex-local` 技能是否发现，再调用技能。团队/企业可能需要管理员允许 Local Plugin Imports；同名 Marketplace 安装可能优先于本地包，应核实实际加载来源。
@@ -68,6 +68,6 @@ git clone https://github.com/semantic-craft/grokbot-to-codex.git "$HOME/.cursor/
 
 ## 更新与停用
 
-以版本库源码为原件更新；Grok 私有技能需重新读取源码并更新对应条目，Cursor 核实重载后实际版本。停用插件/技能不会删除官方会话；升级或移除完整包前保留需要的 `.bridge` 历史状态。不要把该目录、登录凭据或个人配置放进分发包。
+预览期间沿用 `integration/grokbot-mcp` 分支，在保留本地修改和任务状态的前提下更新，不能切换到尚无插件的 `main`。以版本库源码为原件更新；Grok 私有技能需重新读取源码并更新对应条目，Cursor 核实重载后实际版本。停用插件/技能不会删除官方会话；升级或移除完整包前保留需要的 `.bridge` 历史状态。不要把该目录、登录凭据或个人配置放进分发包。
 
 依据：[Cursor Plugins reference](https://cursor.com/docs/reference/plugins)、[官方 manifest schema](https://github.com/cursor/plugins/blob/main/schemas/plugin.schema.json)、[Grok Bot Skills and routines](https://docs.x.ai/grok-bot/skills-routines-and-automations)，2026-10-07 核查。未执行 Cursor 安装或 Marketplace 发布。

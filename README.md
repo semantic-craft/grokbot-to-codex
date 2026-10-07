@@ -4,6 +4,8 @@
 
 ## 可分发插件
 
+当前为 **预览版**：[integration/grokbot-mcp 分支](https://github.com/semantic-craft/grokbot-to-codex/tree/integration/grokbot-mcp)。`main` 尚无插件；首次安装必须使用安装指南中的 `git clone --branch integration/grokbot-mcp`，下载源码也选择该分支。
+
 整个仓库是 Cursor 格式插件根目录，manifest 位于 `.cursor-plugin/plugin.json`，技能与 Node 运行时均在包内。其他用户可以在自己的 Mac 安装并配置自己的 Codex；本版只读执行固定在插件目录，尚不是任意项目的完整编码代理。
 
 [安装指南](plugins/grokbot-to-codex/INSTALL.md) 区分 Cursor 本地插件加载、Grok Bot 私有技能保存和各自的运行验证。仓库提供可分发的包结构，尚未发布 Marketplace；Grok Bot 任意本地插件包导入入口未证实，当前使用私有技能＋本机 Shell。
