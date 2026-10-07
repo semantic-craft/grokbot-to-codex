@@ -1,6 +1,10 @@
-# GrokBot to Codex
+# to codex
 
-Send a read-only task from Grok Bot to Codex running on **your Mac**, retrieve its actual response, then open the released conversation in official **Codex Desktop**. No extra interface, third-party backend, telemetry, or public listener.
+OpenAI Dots feels too early for me. Its interaction and product direction do not fit how I want to work, but I still want Codex.
+
+**to codex** lets me use Grok Bot to dispatch read-only work to Codex on **my Mac** and query its actual status and results. Codex executes; official **Codex Desktop** is available for review and handoff after the conversation is released.
+
+Result retrieval is implemented and tested through explicit queries (pull). Automatic completion messages or waking Grok Bot through push notifications are not implemented. This is a local bridge, with no additional full interface or multi-tenant cloud service.
 
 **Install with your agent:** “Read https://raw.githubusercontent.com/semantic-craft/grokbot-to-codex/main/INSTALL.md and install GrokBot to Codex on my Mac. Follow its host and verification steps.”
 
@@ -33,6 +37,10 @@ The bridge binds to `127.0.0.1` and uses local bearer authentication. `.bridge/`
 
 ## 中文
 
-在 Grok Bot 中说 **“to codex”** 给自己 Mac 上的 Codex 派活，查询实际答复，释放会话后在官方 Codex Desktop 打开。也提供符合 Cursor 格式的完整本地插件包。
+我觉得 OpenAI Dots 还太早期，交互不好用，产品方向也不符合我想要的工作方式；但我仍然想保留 Codex。
+
+所以做了 **to codex**：在 Grok Bot 中派活，由自己 Mac 上的 Codex 执行，再查询实际状态和结果。需要审阅或接手时，释放会话后在官方 Codex Desktop 打开。也提供符合 Cursor 格式的完整本地插件包。
+
+目前已经实现并验证的是**主动查询结果（pull）**；完成后自动推送消息、唤醒 Grok Bot 的 push 通知尚未实现。它是本机桥接工具，没有另做完整界面或多租户云服务。
 
 把上面的安装指南链接发给你的 Agent 即可开始安装。本版是**只读 MVP**，需要本机服务持续运行；尚未上架 Marketplace。Grok Bot 使用私有技能＋本机 Shell，不要求先安装原生 MCP。安装、宿主发现、真实执行和 Desktop 显示分别验收。
