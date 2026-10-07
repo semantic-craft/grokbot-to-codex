@@ -2,12 +2,18 @@
 
 目标：chatbot 调用一个本机小服务，由官方 Desktop 自带的 Codex app-server 执行一句测试提示，并在官方 Desktop 打开同一持久会话。没有 T3 代码或依赖。
 
+## 可分发插件
+
+整个仓库是 Cursor 格式插件根目录，manifest 位于 `.cursor-plugin/plugin.json`，技能与 Node 运行时均在包内。其他用户可以在自己的 Mac 安装并配置自己的 Codex；本版只读执行固定在插件目录，尚不是任意项目的完整编码代理。
+
+[安装指南](plugins/grokbot-to-codex/INSTALL.md) 区分 Cursor 本地插件加载、Grok Bot 私有技能保存和各自的运行验证。仓库提供可分发的包结构，尚未发布 Marketplace；Grok Bot 任意本地插件包导入入口未证实，当前使用私有技能＋本机 Shell。
+
 ## 运行
 
 需要 Node.js 22+、macOS、已登录的官方 Codex/ChatGPT Desktop。默认使用桌面安装包中的 `codex-cli/bin/codex`，可用 `CODEX_BINARY` 指定其他位置。
 
 ```sh
-cd /Users/xianweizhang/Projects/codex-task-bridge
+cd /absolute/path/to/grokbot-to-codex
 node bridge.mjs serve
 ```
 
@@ -27,7 +33,7 @@ node bridge.mjs open chatbot-probe-001
 ```text
 请在这台 Mac 的本地终端执行以下命令，验证我已启动的 Codex 桥接服务：
 
-cd /Users/xianweizhang/Projects/codex-task-bridge
+cd /absolute/path/to/grokbot-to-codex
 node bridge.mjs health
 node bridge.mjs submit chatbot-probe-001 '不要调用工具，不要读取或修改文件。请只回复：CHATBOT_TO_CODEX_OK' 'Chatbot 派活验证'
 

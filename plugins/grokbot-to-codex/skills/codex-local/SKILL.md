@@ -5,15 +5,17 @@ description: 在已配置的用户 Mac 上派活给 Codex、查询实际结果�
 
 # Codex 本机派活
 
-通过 Grok Bot 的本机 Shell 调用既有任务桥；任务执行归独立后台服务。技能无需注册原生 MCP 连接。
+通过 Grok Bot 的本机 Shell，或 Cursor 已确认在用户 Mac 上的本地终端，调用插件自带的任务桥。技能无需注册原生 MCP 连接。
 
-## 绑定与检查
+## 首次配置与运行前检查
 
-安装时保存三项非秘密配置：`machineName`（用户指定 Mac 的名称）、`repoPath`（仓库绝对路径）、`nodePath`（Node 绝对路径）。未配置时只询问缺项；已经配置就直接使用。可选 `stateDir` 仅在服务使用自定义状态目录时设置。
+本仓库根目录同时是插件根目录，运行时只有一份。首次使用先发现实际路径：若宿主提供已加载技能文件路径，从该技能目录向上四层取得插件根目录；核实其中存在 `bridge.mjs` 和 `scripts/mcp-smoke.mjs`，不要把当前编辑项目误作插件根目录。私有技能副本没有文件定位信息时，使用安装时保存的 `repoPath`；确实找不到才询问用户安装位置。
 
-1. 使用 `ListMachines` 找到配置的 Mac，核对在线状态和本机身份，取得本次实际 machine ID。所有 Shell 调用显式指定它。重名或身份不明时先核实；云端容器或另一台电脑不是替代执行地。
-2. 在该机器执行配置的 Node 和仓库中的 `bridge.mjs health`。用 Shell 的参数数组（若支持），否则按下述安全引号规则传路径。自定义 `stateDir` 时向子进程传 `BRIDGE_STATE_DIR`，不更改全局环境。
-3. 只有返回 `alive: true` 且 `cwd` 与配置仓库的实际路径一致才派活。失败时报告主机、路径或服务不可达，让用户恢复已有服务；不要另起实例、安装依赖或改监听地址。
+在目标 Mac 核实 `node -p process.execPath` 和 `node --version`，保存 `nodePath`（Node 22+ 的绝对路径）、`repoPath`（插件根目录绝对路径）。检查官方 Desktop 内置 Codex 的实际安装位置；默认候选是 `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`，其他安装通过现有服务的 `CODEX_BINARY` 配置，不下载替代 CLI，也不读认证文件。可选 `stateDir` 必须与后台的 `BRIDGE_STATE_DIR` 一致。
+
+1. **Grok Bot**：用 `ListMachines` 找到用户指定的 Mac，核对在线状态和身份，取得本次 machine ID，并记录 `machineName`。所有 Shell 调用显式指定此机器。重名或身份不明时先核实，云端容器或其他电脑不是替代执行地。**Cursor 本地终端**：无需 ListMachines；先核实 `uname -s` 为 Darwin、当前主机与用户指定电脑一致、没有远程 SSH/云端执行上下文。若为远程工作区，停止并要求切换到目标 Mac 的本地窗口。
+2. 在该机器执行配置的 Node 和插件根目录的 `bridge.mjs health`。用原生参数数组（若支持），否则按下述安全引号规则传路径。自定义 `stateDir` 向子进程传 `BRIDGE_STATE_DIR`，不更改全局环境。
+3. 只有返回 `alive: true` 且 `cwd` 与插件根目录的实际路径一致才派活。失败时报告主机、路径或服务不可达；首次安装按插件包的 `plugins/grokbot-to-codex/INSTALL.md` 启动一次后台，日常运行不要因失败重复启动实例或改监听地址。
 
 本版仅支持该桥项目的只读任务。写入、审批、取消、续接及跨项目调度尚未实现；相关请求明确说明缺口，不以 shell 命令绕过权限。
 
