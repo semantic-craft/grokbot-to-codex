@@ -1,151 +1,38 @@
-# Codex Task Bridge：官方 Desktop 可见性最小验证
+# GrokBot to Codex
 
-目标：chatbot 调用一个本机小服务，由官方 Desktop 自带的 Codex app-server 执行一句测试提示，并在官方 Desktop 打开同一持久会话。没有 T3 代码或依赖。
+Send a read-only task from Grok Bot to Codex running on **your Mac**, retrieve its actual response, then open the released conversation in official **Codex Desktop**. No extra interface, third-party backend, telemetry, or public listener.
 
-## 可分发插件
+**Install with your agent:** “Read https://raw.githubusercontent.com/semantic-craft/grokbot-to-codex/main/INSTALL.md and install GrokBot to Codex on my Mac. Follow its host and verification steps.”
 
-当前为 **预览版**：[integration/grokbot-mcp 分支](https://github.com/semantic-craft/grokbot-to-codex/tree/integration/grokbot-mcp)。`main` 尚无插件；首次安装必须使用安装指南中的 `git clone --branch integration/grokbot-mcp`，下载源码也选择该分支。
+[Agent installation guide](INSTALL.md) · [Skill source](plugins/grokbot-to-codex/skills/to-codex/SKILL.md) · [Privacy](PRIVACY.md) · [MIT license](LICENSE)
 
-整个仓库是 Cursor 格式插件根目录，manifest 位于 `.cursor-plugin/plugin.json`，技能与 Node 运行时均在包内。其他用户可以在自己的 Mac 安装并配置自己的 Codex；本版只读执行固定在插件目录，尚不是任意项目的完整编码代理。
+## What you get
 
-[安装指南](plugins/grokbot-to-codex/INSTALL.md) 区分 Cursor 本地插件加载、Grok Bot 私有技能保存和各自的运行验证。仓库提供可分发的包结构，尚未发布 Marketplace；Grok Bot 任意本地插件包导入入口未证实，当前使用私有技能＋本机 Shell。
+- **Grok Bot:** a saved private skill using its existing local-computer Shell tools. Say **“to codex”** and describe the task (or select the saved **to codex** skill).
+- **Cursor:** a distributable Cursor-format local plugin with `/to-codex`, sharing the same skill and runtime.
+- **Local bridge:** submit, get, list, bounded wait and open-in-Desktop tools. MCP clients may disconnect while work continues in the separately running backend.
 
-## 运行
+The entire repository is the plugin root. Installing only the skill file omits its runtime. Grok Bot's arbitrary local plugin-package import is unverified; its private-skill route works independently of native MCP registration. **The package is not yet listed on Marketplace.**
 
-需要 Node.js 22+、macOS、已登录的官方 Codex/ChatGPT Desktop。默认使用桌面安装包中的 `codex-cli/bin/codex`，可用 `CODEX_BINARY` 指定其他位置。
+## MVP boundaries
+
+Requires macOS, Node.js 22+ and an installed, signed-in official Codex Desktop. **Keep the bridge service running** in a local terminal; this release does not install automatic startup. Work is read-only and fixed to the plugin directory. Writing approvals, project selection, cancellation, resume, proactive notifications and Windows support are not included.
+
+Codex must finish and release a thread before Desktop takes it over. There is no simultaneous live control of the same conversation. A task and its result still reach the respective Codex and Grok model services; a local bridge does not mean offline inference.
+
+## Developers
 
 ```sh
-cd /absolute/path/to/grokbot-to-codex
-node bridge.mjs serve
-```
-
-客户端另开终端：
-
-```sh
+node bridge.mjs serve        # separate local terminal
 node bridge.mjs health
-node bridge.mjs submit chatbot-probe-001 '不要调用工具或读取文件。请只回复：CHATBOT_TO_CODEX_OK' 'Chatbot 派活验证'
-node bridge.mjs read chatbot-probe-001
-node bridge.mjs open chatbot-probe-001
+node scripts/mcp-smoke.mjs  # tool discovery only
+npm test                    # isolated contract tests, no model calls
 ```
 
-`submit` 异步返回，继续 `read` 直到 `completed`/`failed`/`interrupted`。创建成功会带 `threadId` 和 `desktopUrl`。同一个 request ID 重试只返回原任务；新测试必须使用新的 ID。`open` 用系统注册的 `codex://threads/<id>` 链接打开官方 Desktop，不是另一个自制界面。
+The bridge binds to `127.0.0.1` and uses local bearer authentication. `.bridge/` holds private state and is excluded from Git. See the [installation guide](INSTALL.md) for safe configuration, real acceptance, updates and uninstalling.
 
-## 可复制到本机 chatbot 的提示词
+## 中文
 
-```text
-请在这台 Mac 的本地终端执行以下命令，验证我已启动的 Codex 桥接服务：
+在 Grok Bot 中说 **“to codex”** 给自己 Mac 上的 Codex 派活，查询实际答复，释放会话后在官方 Codex Desktop 打开。也提供符合 Cursor 格式的完整本地插件包。
 
-cd /absolute/path/to/grokbot-to-codex
-node bridge.mjs health
-node bridge.mjs submit chatbot-probe-001 '不要调用工具，不要读取或修改文件。请只回复：CHATBOT_TO_CODEX_OK' 'Chatbot 派活验证'
-
-然后每隔几秒执行 node bridge.mjs read chatbot-probe-001，直到完成或报错。
-成功后执行 node bridge.mjs open chatbot-probe-001。
-把 threadId、status 和模型实际回复告诉我，不要把 starting/running 当成完成。
-如果你不能访问这台 Mac 的终端，明确告诉我；不要在云端另起服务，也不要假装已经运行。
-不要读取 .bridge/token、Codex auth.json 或其他凭据文件。
-```
-
-这段提示词要求 chatbot 已有**这台 Mac 的本地命令执行能力**。仅能访问云端终端或远程 MCP 的 chatbot 无法通过文字提示访问本机 `127.0.0.1`；该情况下尚需配置连接器，本原型不偷偷开放公网。
-
-## GrokBot 插件入口：私有技能＋本机 Shell
-
-优先安装本仓库提供的私有技能 **codex-local**，复用 GrokBot 已有的 Mac Shell 能力。用户选择技能并描述目标，Bot 自动检查本机服务、提交、查询结果，并在会话释放后按要求打开官方 Desktop。
-
-[安装与验收说明](plugins/grokbot-to-codex/INSTALL.md) · [技能源码](plugins/grokbot-to-codex/skills/codex-local/SKILL.md)
-
-该入口调用既有 MCP smoke 客户端，但不要求 GrokBot 先注册原生 MCP 插件。技能的保存、发现和真实执行分别验收；发布源码本身不表示已经安装。下方原生 stdio MCP 仍保留为可选接入方式。
-
-## GrokBot 本地 MCP 入口
-
-薄适配器已提供 `submit_task`、`get_task`、`list_tasks`、`wait_task`、`open_in_desktop`。
-后台仍单独运行 `node bridge.mjs serve`；MCP 只转发请求，断开它不会停止任务。
-此版本仍限于本项目只读派活，不包含常驻安装、写入审批或续接。
-
-GrokBot 官方文档确认了 Team Bot 的 Command MCP 配置；个人 Bot 的安装入口仍待实机验证，当前不能宣称插件已经安装。在可用的本机 Command MCP 配置中，命令填写 **Node 的绝对路径**（可用 `node -p process.execPath` 查询），参数填写本仓库 **mcp.mjs 的绝对路径**。例如常见 MCP 配置形状如下；具体字段依客户端表单填写，不宣称这是 GrokBot 的可导入 manifest：
-
-```json
-{
-  "mcpServers": {
-    "grokbot-to-codex": {
-      "command": "/absolute/path/to/node",
-      "args": ["/absolute/path/to/grokbot-to-codex/mcp.mjs"]
-    }
-  }
-}
-```
-
-必须选择运行桥的这台 Mac。无需填 token：适配器从本机私有状态目录读取，不把凭据暴露给模型。不要把 `npm run mcp` 当作命令入口，npm 的额外 stdout 会干扰协议。
-
-`BRIDGE_STATE_DIR` 可为后台、CLI 和 MCP 指定同一个绝对状态目录；默认仓库内 `.bridge`。隔离测试还可指定 `BRIDGE_PORT`，它只改变 loopback 端口。连接配置只接受 `http://127.0.0.1`，拒绝向远端或重定向地址发送本机凭据。
-
-验证命令（第一条只列工具，不派活；后面的命令会实际执行）：
-
-```sh
-node scripts/mcp-smoke.mjs
-node scripts/mcp-smoke.mjs submit_task '{"requestId":"mcp-probe-001","prompt":"不要调用工具或读写文件。只回复 MCP_TO_CODEX_OK","title":"MCP 派活验证"}'
-node scripts/mcp-smoke.mjs wait_task '{"taskId":"mcp-probe-001","timeoutMs":10000}'
-node scripts/mcp-smoke.mjs get_task '{"taskId":"mcp-probe-001"}'
-node scripts/mcp-smoke.mjs open_in_desktop '{"taskId":"mcp-probe-001"}'
-```
-
-`wait_task` 最长等待 30 秒，超时返回 `timedOut: true` 和当前 `task`，不会取消任务。
-默认等到终态且 `releasedAt` 已有值；`untilReleased: false` 只等执行结束，不能据此立即交给 Desktop。
-`open_in_desktop` 在后端检查释放状态；打开请求成功仅表示系统接受导航，完整问答是否显示须在 Desktop 验收。
-未知任务、无效参数、桥未启动或错误电脑通过 MCP `isError` 返回，stdout 仅输出协议。
-
-```sh
-npm test
-```
-
-合同测试运行真实 MCP 和后台进程，仅在 app-server 进程/JSON-RPC 边界替换夹具，不调用模型、不读用户 Codex 凭据，使用临时状态目录和 loopback 端口。
-覆盖 MCP 初始化/工具发现、异步提交、等待超时、客户端断线/重连、真实协议结果收集、完成与释放区分、打开未释放会话拒绝、HTTP 认证/Origin 拒绝和 CLI 兼容。
-真实 GrokBot 配置及 Desktop 验收需另行记录，合同测试不替代该证据。
-
-协议依据：[MCP stdio 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)。
-
-## 实际范围
-
-- `bridge.mjs` HTTP/CLI 入口与 `codex.mjs` 协议客户端，只有 Node 内置模块，无 npm 安装和第三方遥测。
-- 仅监听 `127.0.0.1:43187`；所有请求要求随机 bearer，CLI 自动读取本地私有文件，不输出令牌。
-- 固定在本项目工作目录；线程为只读、禁止审批提升，目的是验证会话可见性，不是完整编码执行器。
-- 不修改官方 Desktop 安装包、全局配置或后台 daemon 开关；不重启 Desktop。
-- 每个任务独立启动 app-server，共享当前用户的 Codex 本地持久会话库，使用实验 `historyMode: paginated`。任务完成后退出执行进程并释放会话锁，再在 Desktop 打开。**这不等于与 Desktop 共用同一个正在执行的后端，不承诺运行中的实时接管。** `open` 会拒绝尚未释放的任务。
-- 桥不会复制或显示 Codex 登录令牌，由官方 app-server 使用现有登录；提示词及其上下文仍会由 Codex 发给模型服务，本原型不意味着离线推理。
-- `.bridge/` 存放连接信息、令牌、任务 ID 与模型返回内容，已加入 `.gitignore`。不记录原始 app-server stderr，不持久化请求提示词到桥的 jobs 文件（Codex 自身仍保存会话）。
-- 退出服务会终止该桥的 app-server。重启后未完成任务标为 interrupted，不自动重放。已完成会话保留在 Codex 原有存储内。
-
-## 验收记录（2026-10-07）
-
-- 官方二进制：`0.162.0-alpha.2`。
-- V1 失败：legacy 历史模式 + 常驻执行进程。用户截图确认 Desktop 能看到标题，但显示 `Couldn't load messages` 和 `This is open in another app`。
-- 回归程序 `verify-history.mjs` 对 V1 重现 `thread/items/list is not supported yet`。
-- V2 修复：paginated 历史，每任务执行进程在结束后退出。
-- HTTP/JSON-RPC 真实派活：`desktop-probe-002` 完成。
-- thread ID：`01a1163e-4073-7070-b3a0-7704f5bf9ab9`。
-- 模型实际回复：`BRIDGE_DESKTOP_OK_V2`。
-- 回归程序从独立 app-server 读取消息、resume 同一 thread 成功，之后退出释放锁。
-- 官方 Desktop `read_thread` 返回同一 thread 的完整用户消息、模型答复和 completed 状态；导航接口接受 ID。
-- 用户已在官方 Desktop 看到回复并回传 `BRIDGE_DESKTOP_OK_V2`，可见性验收通过。随后用户确认 GrokBot 经 CLI 派活成功；这不代表 MCP 安装验收通过。
-- 未认证读取返回 401；带浏览器 Origin 的提交返回 403；无效提交返回 400；重复 request ID 返回原任务且不启动新 turn。
-
-MCP 实施验证（代码 `913bbf3`）：
-
-- 6 项隔离合同测试通过；真实 MCP smoke 客户端提交 `mcp-probe-001`，断开后以新客户端等待并取得 `MCP_TO_CODEX_OK`。
-- 官方 app-server 执行完成、进程释放；独立 app-server 分页读取与 resume 同一会话成功。
-- 官方 Desktop 读取接口返回完整用户消息和模型最终答复。
-- GrokBot 自身安装并调用 MCP、Desktop 界面显示及人工接手仍待验证；#2 保持打开，后续依赖工单尚未进入实施。
-
-回归检查（无模型调用；读取并短暂 resume 已存在的测试会话）：
-
-```sh
-node verify-history.mjs 01a1163e-4073-7070-b3a0-7704f5bf9ab9
-```
-
-先关闭该测试会话的活跃执行，再运行检查。不要在用户正在执行的其他会话上运行此脚本。
-
-## 停止
-
-前台终端按 Ctrl-C。当前实例 PID 可查看 `.bridge/connection.json`，不要误杀其他 Codex 进程。代码和 `.bridge` 状态均位于本目录；没有安装自启动项。
-
-协议参考：[官方 app-server 文档](https://learn.chatgpt.com/docs/app-server)。实验历史格式可能随桌面版升级变化。
+把上面的安装指南链接发给你的 Agent 即可开始安装。本版是**只读 MVP**，需要本机服务持续运行；尚未上架 Marketplace。Grok Bot 使用私有技能＋本机 Shell，不要求先安装原生 MCP。安装、宿主发现、真实执行和 Desktop 显示分别验收。

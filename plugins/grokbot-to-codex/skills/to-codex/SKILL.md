@@ -1,9 +1,9 @@
 ---
-name: codex-local
-description: 在已配置的用户 Mac 上派活给 Codex、查询实际结果，并在会话释放后用官方 Codex Desktop 打开。用于用户要求 Codex 本机派活、查看任务或桌面接手。
+name: to-codex
+description: 当用户说“to codex”、要求给 Codex 派活、查询 Codex 任务或在官方 Desktop 接手时使用。在已配置的用户 Mac 上执行只读派活与实际结果查询。
 ---
 
-# Codex 本机派活
+# to codex
 
 通过 Grok Bot 的本机 Shell，或 Cursor 已确认在用户 Mac 上的本地终端，调用插件自带的任务桥。技能无需注册原生 MCP 连接。
 
@@ -15,7 +15,7 @@ description: 在已配置的用户 Mac 上派活给 Codex、查询实际结果�
 
 1. **Grok Bot**：用 `ListMachines` 找到用户指定的 Mac，核对在线状态和身份，取得本次 machine ID，并记录 `machineName`。所有 Shell 调用显式指定此机器。重名或身份不明时先核实，云端容器或其他电脑不是替代执行地。**Cursor 本地终端**：无需 ListMachines；先核实 `uname -s` 为 Darwin、当前主机与用户指定电脑一致、没有远程 SSH/云端执行上下文。若为远程工作区，停止并要求切换到目标 Mac 的本地窗口。
 2. 在该机器执行配置的 Node 和插件根目录的 `bridge.mjs health`。用原生参数数组（若支持），否则按下述安全引号规则传路径。自定义 `stateDir` 向子进程传 `BRIDGE_STATE_DIR`，不更改全局环境。
-3. 只有返回 `alive: true` 且 `cwd` 与插件根目录的实际路径一致才派活。失败时报告主机、路径或服务不可达；首次安装按插件包的 `plugins/grokbot-to-codex/INSTALL.md` 启动一次后台，日常运行不要因失败重复启动实例或改监听地址。
+3. 只有返回 `alive: true` 且 `cwd` 与插件根目录的实际路径一致才派活。失败时报告主机、路径或服务不可达；首次安装按插件包的 `INSTALL.md` 启动一次后台，日常运行不要因失败重复启动实例或改监听地址。
 
 本版仅支持该桥项目的只读任务。写入、审批、取消、续接及跨项目调度尚未实现；相关请求明确说明缺口，不以 shell 命令绕过权限。
 
