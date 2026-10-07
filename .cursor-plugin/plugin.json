@@ -6,7 +6,7 @@
   "repository": "https://github.com/semantic-craft/grokbot-to-codex",
   "skills": "./plugins/grokbot-to-codex/skills",
   "author": {
-    "name": "semantic-craft"
+    "name": "Semantic_Craft"
   },
   "license": "MIT",
   "logo": "assets/to-codex-logo.png"
