@@ -18,7 +18,7 @@ Use the host's existing local-command approval mechanism. Do not enable global �
 
 ## 2. Find or obtain one complete installation
 
-Check the user's supplied location, `~/Projects/grokbot-to-codex`, and (for Cursor) `~/.cursor/plugins/local/grokbot-to-codex`. Prefer an existing installation of this repository. Inspect its remote, branch, working tree, and manifest before changing it. Preserve unrelated installs, local modifications, and `.bridge` task data. Do not reset, force-push, overwrite a same-named directory, or run a second bridge against an existing state directory.
+Check the user's supplied location, `~/Projects/grokbot-to-codex`, and any existing Cursor local copy. Prefer an existing installation of this repository. Inspect its remote, branch, working tree, and manifest before changing it. Preserve unrelated installs, local modifications, and `.bridge` task data. Do not reset, force-push, overwrite a same-named directory, or run a second bridge against an existing state directory.
 
 For a new Grok Bot installation, the default is:
 
@@ -26,14 +26,9 @@ For a new Grok Bot installation, the default is:
 git clone --branch main https://github.com/semantic-craft/grokbot-to-codex.git "$HOME/Projects/grokbot-to-codex"
 ```
 
-For a new Cursor local plugin installation, use its actual plugin root instead:
+For Cursor, use the selected complete repository as the local plugin source. In **Customize → Plugins → Add → From Local Repository**, select that repository root. A folder placed under `~/.cursor/plugins/local` may expose its skill without registering the plugin; check the Plugins view after import. Do not create a second copy merely for Cursor when the existing repository can be imported.
 
-```sh
-mkdir -p "$HOME/.cursor/plugins/local"
-git clone --branch main https://github.com/semantic-craft/grokbot-to-codex.git "$HOME/.cursor/plugins/local/grokbot-to-codex"
-```
-
-Choose one route, not two copies for one host. If a prior installation is elsewhere, keep it intact and resolve host loading before creating a duplicate. The complete repository is the plugin: verify `.cursor-plugin/plugin.json`, `bridge.mjs`, `codex.mjs`, `mcp.mjs`, `scripts/mcp-smoke.mjs`, and `plugins/grokbot-to-codex/skills/to-codex/SKILL.md`. Copying only `SKILL.md` does not install its runtime. There are no npm dependencies to install.
+Choose one runtime directory for one host. If a prior installation is elsewhere, keep it intact until host loading and task state have been reconciled. The complete repository is the plugin: verify `.cursor-plugin/plugin.json`, `bridge.mjs`, `codex.mjs`, `mcp.mjs`, `scripts/mcp-smoke.mjs`, and `plugins/grokbot-to-codex/skills/to-codex/SKILL.md`. Copying only `SKILL.md` does not install its runtime. There are no npm dependencies to install.
 
 Record the actual absolute `repoPath` and `nodePath`. Resolve paths from the installed package, not the unrelated project currently open in the editor. Never embed the publisher's personal machine ID or home directory.
 
@@ -75,7 +70,7 @@ This is the supported private-skill route. Importing an arbitrary local Cursor-f
 
 ### Cursor local plugin
 
-The repository root is a Cursor-format plugin with `.cursor-plugin/plugin.json`; its `skills` field points to the existing skill source. In a local Cursor window, reload the client and inspect the loaded plugin and `/to-codex` skill. Confirm the source is this installation. Organization policy may control local imports; report a blocked policy rather than changing it. A same-named Marketplace installation may take precedence.
+The repository root is a Cursor-format plugin with `.cursor-plugin/plugin.json`; its `skills` field points to the existing skill source. Import the repository through Cursor's local-plugin action above, then inspect both the loaded plugin and `/to-codex` skill in a new local Cursor window or chat. Confirm the source is this installation. Organization policy may control local imports; report a blocked policy rather than changing it. A same-named Marketplace installation may take precedence.
 
 The skill uses Cursor's local terminal and checks host identity without Grok-specific tools. It locates the root runtime from its loaded skill path. No automatic hook or MCP registration is added.
 

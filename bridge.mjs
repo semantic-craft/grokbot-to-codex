@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Local proof of concept: no third-party packages, telemetry, or cloud relay.
+// Local read-only bridge: no third-party packages, telemetry, or cloud relay.
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { connect, BINARY } from './codex.mjs';
@@ -83,7 +83,7 @@ async function serve() {
     if (req.headers.origin || req.headers.host !== `127.0.0.1:${PORT}`) return reply(403, { error: 'Local CLI access only' });
     if (!equal(req.headers.authorization || '', `Bearer ${token}`)) return reply(401, { error: 'Unauthorized' });
     const path = req.url;
-    if (req.method === 'GET' && path === '/health') return reply(200, { alive: true, cwd: ROOT, binary: BINARY, userAgent: initialized.userAgent, mode: 'read-only-visibility-probe' });
+    if (req.method === 'GET' && path === '/health') return reply(200, { alive: true, cwd: ROOT, binary: BINARY, userAgent: initialized.userAgent, mode: 'read-only' });
     if (req.method === 'GET' && path === '/jobs') return reply(200, Object.values(jobs));
     const match = /^\/jobs\/([a-zA-Z0-9_-]+)$/.exec(path);
     if (req.method === 'GET' && match) return reply(jobs[match[1]] ? 200 : 404, jobs[match[1]] || { error: 'Unknown job' });

@@ -41,7 +41,7 @@ export async function connect(cwd, onEvent = () => {}) {
   };
   try {
     const initialized = await request('initialize', {
-      clientInfo: { name: 'codex_task_bridge', title: 'Local Task Bridge', version: '0.1.0' },
+      clientInfo: { name: 'grokbot_to_codex', title: 'GrokBot to Codex', version: '0.2.0' },
       capabilities: { experimentalApi: true },
     });
     send({ method: 'initialized', params: {} });
