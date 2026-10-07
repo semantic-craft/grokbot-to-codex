@@ -5,13 +5,9 @@ import { spawn } from 'node:child_process';
 import { connect, BINARY } from './codex.mjs';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { ROOT, STATE, PORT, BASE, call } from './bridge-client.mjs';
 
-const ROOT = dirname(fileURLToPath(import.meta.url));
-const STATE = join(ROOT, '.bridge');
-const PORT = Number(process.env.BRIDGE_PORT || 43187);
-const BASE = `http://127.0.0.1:${PORT}`;
 const tokenPath = join(STATE, 'token');
 const discoveryPath = join(STATE, 'connection.json');
 const dataPath = join(STATE, 'jobs.json');
@@ -21,7 +17,7 @@ function readJSON(path, fallback) { return existsSync(path) ? JSON.parse(readFil
 function privateWrite(path, data) { writeFileSync(path, data, { mode: 0o600 }); }
 function loadToken() { return readFileSync(tokenPath, 'utf8').trim(); }
 function equal(a, b) { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); }
-function openThread(id) { spawn('/usr/bin/open', [`codex://threads/${id}`], { stdio: 'ignore' }).unref(); }
+function openThread(id) { return new Promise((resolve, reject) => { const child = spawn('/usr/bin/open', [`codex://threads/${encodeURIComponent(id)}`], { stdio: 'ignore' }); child.on('error', () => reject(new Error('Could not open Codex Desktop'))); child.on('exit', code => code === 0 ? resolve() : reject(new Error('Could not open Codex Desktop'))); }); }
 
 async function serve() {
   mkdirSync(STATE, { recursive: true, mode: 0o700 });
@@ -91,6 +87,14 @@ async function serve() {
     if (req.method === 'GET' && path === '/jobs') return reply(200, Object.values(jobs));
     const match = /^\/jobs\/([a-zA-Z0-9_-]+)$/.exec(path);
     if (req.method === 'GET' && match) return reply(jobs[match[1]] ? 200 : 404, jobs[match[1]] || { error: 'Unknown job' });
+    const openMatch = /^\/jobs\/([a-zA-Z0-9_-]+)\/open$/.exec(path);
+    if (req.method === 'POST' && openMatch) {
+      const job = jobs[openMatch[1]];
+      if (!job) return reply(404, { error: 'Unknown job' });
+      if (!job.threadId || !job.releasedAt) return reply(409, { error: 'Wait for the task to finish and release its thread first' });
+      try { await openThread(job.threadId); return reply(200, job); }
+      catch (error) { return reply(500, { error: error.message }); }
+    }
     if (req.method === 'POST' && path === '/jobs') {
       try {
         let body = '';
@@ -115,21 +119,13 @@ async function serve() {
   process.on('SIGTERM', shutdown); process.on('SIGINT', shutdown);
 }
 
-async function call(path, body) {
-  const { baseUrl } = readJSON(discoveryPath, { baseUrl: BASE });
-  const response = await fetch(baseUrl + path, { method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${loadToken()}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
-  const value = await response.json();
-  if (!response.ok) throw new Error(value.error);
-  return value;
-}
 
 try {
   if (mode === 'serve') await serve();
   else if (mode === 'health') console.log(JSON.stringify(await call('/health'), null, 2));
   else if (mode === 'list') console.log(JSON.stringify(await call('/jobs'), null, 2));
   else if (mode === 'read' || mode === 'open') {
-    const job = await call(`/jobs/${encodeURIComponent(process.argv[3])}`);
-    if (mode === 'open') { if (!job.threadId || !job.releasedAt) throw new Error('Wait for the task to finish and release its thread first'); openThread(job.threadId); }
+    const job = await call(`/jobs/${encodeURIComponent(process.argv[3])}${mode === 'open' ? '/open' : ''}`, mode === 'open' ? {} : undefined);
     console.log(JSON.stringify(job, null, 2));
   } else if (mode === 'submit') {
     const requestId = process.argv[3];

@@ -40,6 +40,54 @@ node bridge.mjs submit chatbot-probe-001 '不要调用工具，不要读取或�
 
 这段提示词要求 chatbot 已有**这台 Mac 的本地命令执行能力**。仅能访问云端终端或远程 MCP 的 chatbot 无法通过文字提示访问本机 `127.0.0.1`；该情况下尚需配置连接器，本原型不偷偷开放公网。
 
+## GrokBot 本地 MCP 入口
+
+薄适配器已提供 `submit_task`、`get_task`、`list_tasks`、`wait_task`、`open_in_desktop`。
+后台仍单独运行 `node bridge.mjs serve`；MCP 只转发请求，断开它不会停止任务。
+此版本仍限于本项目只读派活，不包含常驻安装、写入审批或续接。
+
+在 GrokBot 的本机 Command MCP 配置中，命令填写 **Node 的绝对路径**（可用 `node -p process.execPath` 查询），参数填写本仓库 **mcp.mjs 的绝对路径**。例如常见 MCP 配置形状如下；具体字段依客户端表单填写，不宣称这是 GrokBot 的可导入 manifest：
+
+```json
+{
+  "mcpServers": {
+    "grokbot-to-codex": {
+      "command": "/absolute/path/to/node",
+      "args": ["/absolute/path/to/grokbot-to-codex/mcp.mjs"]
+    }
+  }
+}
+```
+
+必须选择运行桥的这台 Mac。无需填 token：适配器从本机私有状态目录读取，不把凭据暴露给模型。不要把 `npm run mcp` 当作命令入口，npm 的额外 stdout 会干扰协议。
+
+`BRIDGE_STATE_DIR` 可为后台、CLI 和 MCP 指定同一个绝对状态目录；默认仓库内 `.bridge`。隔离测试还可指定 `BRIDGE_PORT`，它只改变 loopback 端口。连接配置只接受 `http://127.0.0.1`，拒绝向远端或重定向地址发送本机凭据。
+
+验证命令（第一条只列工具，不派活；后面的命令会实际执行）：
+
+```sh
+node scripts/mcp-smoke.mjs
+node scripts/mcp-smoke.mjs submit_task '{"requestId":"mcp-probe-001","prompt":"不要调用工具或读写文件。只回复 MCP_TO_CODEX_OK","title":"MCP 派活验证"}'
+node scripts/mcp-smoke.mjs wait_task '{"taskId":"mcp-probe-001","timeoutMs":10000}'
+node scripts/mcp-smoke.mjs get_task '{"taskId":"mcp-probe-001"}'
+node scripts/mcp-smoke.mjs open_in_desktop '{"taskId":"mcp-probe-001"}'
+```
+
+`wait_task` 最长等待 30 秒，超时返回 `timedOut: true` 和当前 `task`，不会取消任务。
+默认等到终态且 `releasedAt` 已有值；`untilReleased: false` 只等执行结束，不能据此立即交给 Desktop。
+`open_in_desktop` 在后端检查释放状态；打开请求成功仅表示系统接受导航，完整问答是否显示须在 Desktop 验收。
+未知任务、无效参数、桥未启动或错误电脑通过 MCP `isError` 返回，stdout 仅输出协议。
+
+```sh
+npm test
+```
+
+合同测试运行真实 MCP 和后台进程，仅在 app-server 进程/JSON-RPC 边界替换夹具，不调用模型、不读用户 Codex 凭据，使用临时状态目录和 loopback 端口。
+覆盖 MCP 初始化/工具发现、异步提交、等待超时、客户端断线/重连、真实协议结果收集、完成与释放区分、打开未释放会话拒绝、HTTP 认证/Origin 拒绝和 CLI 兼容。
+真实 GrokBot 配置及 Desktop 验收需另行记录，合同测试不替代该证据。
+
+协议依据：[MCP stdio 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)。
+
 ## 实际范围
 
 - `bridge.mjs` HTTP/CLI 入口与 `codex.mjs` 协议客户端，只有 Node 内置模块，无 npm 安装和第三方遥测。
