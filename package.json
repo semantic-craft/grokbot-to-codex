@@ -1,0 +1,1 @@
+{"name":"codex-task-bridge","version":"0.1.0","private":true,"type":"module","scripts":{"start":"node bridge.mjs serve","health":"node bridge.mjs health"},"engines":{"node":">=22"}}
