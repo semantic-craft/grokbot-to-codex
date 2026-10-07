@@ -8,5 +8,6 @@
   "author": {
     "name": "semantic-craft"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "logo": "assets/to-codex-logo.png"
 }
