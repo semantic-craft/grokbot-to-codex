@@ -46,7 +46,7 @@ node bridge.mjs submit chatbot-probe-001 '不要调用工具，不要读取或�
 后台仍单独运行 `node bridge.mjs serve`；MCP 只转发请求，断开它不会停止任务。
 此版本仍限于本项目只读派活，不包含常驻安装、写入审批或续接。
 
-在 GrokBot 的本机 Command MCP 配置中，命令填写 **Node 的绝对路径**（可用 `node -p process.execPath` 查询），参数填写本仓库 **mcp.mjs 的绝对路径**。例如常见 MCP 配置形状如下；具体字段依客户端表单填写，不宣称这是 GrokBot 的可导入 manifest：
+GrokBot 官方文档确认了 Team Bot 的 Command MCP 配置；个人 Bot 的安装入口仍待实机验证，当前不能宣称插件已经安装。在可用的本机 Command MCP 配置中，命令填写 **Node 的绝对路径**（可用 `node -p process.execPath` 查询），参数填写本仓库 **mcp.mjs 的绝对路径**。例如常见 MCP 配置形状如下；具体字段依客户端表单填写，不宣称这是 GrokBot 的可导入 manifest：
 
 ```json
 {
@@ -110,8 +110,15 @@ npm test
 - 模型实际回复：`BRIDGE_DESKTOP_OK_V2`。
 - 回归程序从独立 app-server 读取消息、resume 同一 thread 成功，之后退出释放锁。
 - 官方 Desktop `read_thread` 返回同一 thread 的完整用户消息、模型答复和 completed 状态；导航接口接受 ID。
-- 用户已在官方 Desktop 看到回复并回传 `BRIDGE_DESKTOP_OK_V2`，可见性验收通过。chatbot 发起链路尚需把上述提示词交给 chatbot 验证。
+- 用户已在官方 Desktop 看到回复并回传 `BRIDGE_DESKTOP_OK_V2`，可见性验收通过。随后用户确认 GrokBot 经 CLI 派活成功；这不代表 MCP 安装验收通过。
 - 未认证读取返回 401；带浏览器 Origin 的提交返回 403；无效提交返回 400；重复 request ID 返回原任务且不启动新 turn。
+
+MCP 实施验证（代码 `913bbf3`）：
+
+- 6 项隔离合同测试通过；真实 MCP smoke 客户端提交 `mcp-probe-001`，断开后以新客户端等待并取得 `MCP_TO_CODEX_OK`。
+- 官方 app-server 执行完成、进程释放；独立 app-server 分页读取与 resume 同一会话成功。
+- 官方 Desktop 读取接口返回完整用户消息和模型最终答复。
+- GrokBot 自身安装并调用 MCP、Desktop 界面显示及人工接手仍待验证；#2 保持打开，后续依赖工单尚未进入实施。
 
 回归检查（无模型调用；读取并短暂 resume 已存在的测试会话）：
 
