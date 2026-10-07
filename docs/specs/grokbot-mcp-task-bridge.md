@@ -1,8 +1,8 @@
 # GrokBot 插件与 Codex 任务桥：派活、结果查询及通知扩展
 
 日期：2026-10-07。基线：`ddf2d3f`。
-状态：规格已整理；用户已确认测试边界；待配置项目工单系统后发布。
-目标工单标签：`ready-for-agent`（未发布、未实际应用标签）。
+状态：用户已确认测试边界与工单拆分；已发布为 [GitHub #1](https://github.com/semantic-craft/grokbot-to-codex/issues/1)。实施工单见 [工单索引](grokbot-mcp-tickets.md)。
+工单标签：`ready-for-agent`（已应用；阻塞关系与条件另行约束领取）。
 
 ## Problem Statement
 
@@ -149,5 +149,4 @@
 - 尚未实现：MCP 插件、SQLite、常驻服务安装、生产执行权限/审批、取消/续接工具、主动通知、Codex/ChatGPT 新入口。不能把原型验证当成这些功能已完成。
 - 隐私边界：本机中间层不等于离线模型。任务及上下文仍由 Codex 发给其模型服务；交给 GrokBot 的结果也进入 GrokBot。只传必要内容，不输出凭据。
 - 本规格未发现项目 glossary 或 ADR，使用现有 job/task、thread、turn、桥接服务及 Desktop 交接术语。job 是一次提交/续接的执行记录，thread 是可跨多轮复用的 Codex 会话，turn 是其中一次模型执行。
-- 工单发布阻塞：本仓库尚无 Git remote、项目 issue tracker 或分流标签配置。按 to-spec 技能运行 `/setup-matt-pocock-skills` 后，应将此规格发布到已配置的项目工单系统，并应用 `ready-for-agent`；不得猜测发布到其他项目。
 - 参考：[官方 app-server 协议](https://learn.chatgpt.com/docs/app-server)、[GrokBot 插件与运行电脑说明](https://docs.x.ai/grok-bot/team-bots#plugins)。实施阶段需按实际安装版本复核。
