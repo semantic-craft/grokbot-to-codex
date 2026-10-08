@@ -1,0 +1,51 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, rm, readFile, writeFile, symlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+
+const root = fileURLToPath(new URL('../', import.meta.url));
+test('clean distribution runs without the source checkout and excludes recipient state', { timeout: 15000 }, async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'to-codex-distribution-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const archive = join(dir, 'plugin.tgz');
+  const packed = spawnSync(process.execPath, ['scripts/package-plugin.mjs', archive], { cwd: root, encoding: 'utf8' });
+  assert.equal(packed.status, 0, packed.stderr);
+  const entries = spawnSync('tar', ['-tzf', archive], { encoding: 'utf8' });
+  assert.equal(entries.status, 0, entries.stderr);
+  const files = entries.stdout.trim().split('\n');
+  for (const required of ['bridge.mjs', 'projects.mjs', '.cursor-plugin/plugin.json', 'plugins/grokbot-to-codex/skills/to-codex/SKILL.md']) assert.ok(files.includes(required));
+  assert.ok(files.every(file => !/(?:^|\/)(?:\.bridge|\.git|dist|node_modules|ACCEPTANCE\.md)(?:\/|$)/.test(file)));
+  assert.ok(files.every(file => !file.startsWith('docs/research/')));
+  const extracted = spawnSync('tar', ['-xzf', archive, '-C', dir], { encoding: 'utf8' });
+  assert.equal(extracted.status, 0, extracted.stderr);
+  const profile = await readFile(join(dir, 'templates/dr-codexbot/PROFILE.md'), 'utf8');
+  const template = JSON.parse(await readFile(join(dir, 'templates/dr-codexbot/export.json'), 'utf8'));
+  assert.equal(template.profile.description, profile.trim());
+  assert.deepEqual(template.memory, []);
+  assert.deepEqual(template.routines, []);
+  assert.deepEqual(template.plugins, []);
+  assert.equal(template.skills[0].content, (await readFile(join(dir, 'templates/dr-codexbot/GETTING-STARTED.md'), 'utf8')).trim());
+  const genericSkill = await readFile(join(dir, 'plugins/grokbot-to-codex/skills/to-codex/SKILL.md'), 'utf8');
+  assert.equal(/[\u3400-\u9fff]/u.test(genericSkill), false, 'skill description and instructions are English');
+  // The extracted package has no .git, publisher state or repository plugin installation.
+  // Its fixture exercises the actual packaged bridge and MCP with a new target directory.
+  const { NODE_TEST_CONTEXT, ...coldEnv } = process.env;
+  const cold = spawnSync(process.execPath, ['--test', '--test-name-pattern=MCP routes a registered', 'test/mcp.test.mjs'], { cwd: dir, env: coldEnv, encoding: 'utf8', timeout: 10000 });
+  assert.equal(cold.status, 0, cold.stdout + cold.stderr);
+  assert.match(cold.stdout, /MCP routes a registered/);
+  assert.match(cold.stdout, /pass 1/);
+  assert.equal(spawnSync(process.execPath, ['scripts/package-plugin.mjs', archive], { cwd: root }).status, 1, 'do not overwrite an existing release');
+  const source = join(dir, 'scripts/package-plugin.mjs');
+  const skill = join(dir, 'plugins/grokbot-to-codex/skills/to-codex/SKILL.md');
+  await writeFile(skill, 'configured copy: ' + '/Users/' + 'example/private-project');
+  const rejected = spawnSync(process.execPath, [source, join(dir, 'bad.tgz')], { encoding: 'utf8' });
+  assert.equal(rejected.status, 1);
+  assert.match(rejected.stderr, /Remove personal paths or credentials/);
+  await rm(skill); await symlink(join(dir, 'README.md'), skill);
+  const linked = spawnSync(process.execPath, [source, join(dir, 'linked.tgz')], { encoding: 'utf8' });
+  assert.equal(linked.status, 1);
+  assert.match(linked.stderr, /regular local file/);
+});

@@ -1,64 +1,72 @@
 ---
 name: to-codex
-description: 当用户说“to codex”、要求给 Codex 派活、查询 Codex 任务或在官方 Desktop 接手时使用。在已配置的用户 Mac 上执行只读派活与实际结果查询。
+description: Bring official Codex Desktop into Grok Bot or Cursor on the user's Mac, not a standalone Codex CLI workflow. Use for "to codex", read-only assignments, actual task results, or Desktop handoff.
 ---
 
 # to codex
 
-通过 Grok Bot 的本机 Shell，或 Cursor 已确认在用户 Mac 上的本地终端，调用插件自带的任务桥。技能无需注册原生 MCP 连接。
+Use Grok Bot's local-computer Shell, or Cursor's terminal verified to run on the user's Mac, to call this package's task bridge. Native MCP registration is not required.
 
-## 首次配置与运行前检查
+This is an **official Codex Desktop integration, not a standalone Codex CLI workflow**. The bridge uses the executable and app-server shipped inside the user's installed Desktop application and its normal authentication. No separate Codex CLI installation is required. Dispatch runs through that embedded app-server; after release, the same conversation can be reviewed or continued in Desktop. Active tasks and the Desktop UI do not control a thread simultaneously.
 
-本仓库根目录同时是插件根目录，运行时只有一份。首次使用先发现实际路径：若宿主提供已加载技能文件路径，从该技能目录向上四层取得插件根目录；核实其中存在 `bridge.mjs` 和 `scripts/mcp-smoke.mjs`，不要把当前编辑项目误作插件根目录。私有技能副本没有文件定位信息时，使用安装时保存的 `repoPath`；确实找不到才询问用户安装位置。
+## Setup and preflight
 
-在目标 Mac 核实 `node -p process.execPath` 和 `node --version`，保存 `nodePath`（Node 22+ 的绝对路径）、`repoPath`（插件根目录绝对路径）。检查官方 Desktop 内置 Codex 的实际安装位置；默认候选是 `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`，其他安装通过现有服务的 `CODEX_BINARY` 配置，不下载替代 CLI，也不读认证文件。可选 `stateDir` 必须与后台的 `BRIDGE_STATE_DIR` 一致。
+This skill is reusable across users. Distribute the generic procedure and placeholder examples; keep each recipient's machine, paths and project registry in their installation configuration. The repository root is also the plugin root, with one runtime. If the host supplies the loaded skill's file path, ascend four directories from its skill directory to find the root. Verify `bridge.mjs` and `scripts/mcp-smoke.mjs` exist there; the currently edited project is not necessarily the installation. For a saved skill without file-location information, use the installation's recorded `repoPath`. Ask for the installation location only if discovery fails.
 
-1. **Grok Bot**：用 `ListMachines` 找到用户指定的 Mac，核对在线状态和身份，取得本次 machine ID，并记录 `machineName`。所有 Shell 调用显式指定此机器。重名或身份不明时先核实，云端容器或其他电脑不是替代执行地。**Cursor 本地终端**：无需 ListMachines；先核实 `uname -s` 为 Darwin、当前主机与用户指定电脑一致、没有远程 SSH/云端执行上下文。若为远程工作区，停止并要求切换到目标 Mac 的本地窗口。
-2. 在该机器执行配置的 Node 和插件根目录的 `bridge.mjs health`。用原生参数数组（若支持），否则按下述安全引号规则传路径。自定义 `stateDir` 向子进程传 `BRIDGE_STATE_DIR`，不更改全局环境。
-3. 只有返回 `alive: true`、`projectSelection: registered-project-id` 且健康检查的 `cwd` 与插件根目录实际路径一致才继续选择项目。旧服务缺少 `projectSelection` 时按 INSTALL.md 更新并在活动任务结束后重启。失败时报告主机、路径或服务不可达；首次安装按插件包的 `INSTALL.md` 启动一次后台，日常运行不要因失败重复启动实例或改监听地址。
+If no runtime is installed, read https://raw.githubusercontent.com/semantic-craft/grokbot-to-codex/main/INSTALL.md and execute its Grok Bot setup steps on the user's Mac before dispatch. A Marketplace skill supplies instructions, not a running local bridge. Use available web and local Shell tools for setup; it does not depend on native MCP registration or an already working bridge.
 
-本版支持已登记项目的只读任务。桥安装目录 `repoPath` 用来运行客户端，目标项目的 `cwd` 用来执行任务，两者分别核对。写入、审批、取消、续接及排队调度尚未实现。
+On the target Mac, verify `node -p process.execPath` and `node --version`. Record `nodePath` (absolute Node.js 22+ executable) and `repoPath` (absolute plugin root). Locate the installed official Desktop's embedded Codex executable; the default candidate is `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`. A different installation uses the existing service's `CODEX_BINARY` configuration. Do not download a replacement CLI or read authentication files. Optional `stateDir` must match the backend's `BRIDGE_STATE_DIR`.
 
-## 选择目标项目
+1. **Grok Bot:** use `ListMachines` to identify the requested Mac, verify its identity and online status, obtain its current machine ID, and record `machineName`. Explicitly target that machine in every Shell call. Resolve ambiguous names or identity before execution; a cloud container or another computer is not a substitute. **Cursor local terminal:** verify `uname -s` returns Darwin, the host matches the requested Mac, and execution is not in SSH or a cloud workspace. For a remote workspace, stop and request the target Mac's local window.
+2. On that machine, invoke the configured Node executable with the installation's `bridge.mjs health`. Use native argv when available; otherwise quote paths as described below. Pass a configured `BRIDGE_STATE_DIR` to that process without changing the global environment.
+3. Continue to project selection only when health returns `alive: true`, `projectSelection: registered-project-id`, and `cwd` matching the installation's actual path. If an old service lacks `projectSelection`, follow INSTALL.md to update and restart after active tasks finish. Report an unreachable host, installation or service. For first installation, follow the package's INSTALL.md to start one backend; routine failures do not justify duplicate instances or changing the listener address.
 
-先调用 `list_projects`，将用户明确指定的项目路径与返回的规范 `cwd` 对照，取得对应 `projectId`。用户只给项目名时须唯一匹配；确有歧义才询问。`repoPath` 和健康检查的 `cwd` 是安装目录，不能作为未指定项目的默认目标；把目录写进 prompt 也不构成项目选择。
+This release supports read-only tasks in registered projects. Installation `repoPath` locates the client; target `cwd` locates task execution. Verify them separately. Writes, approval forwarding, cancellation, resume and queue scheduling are not implemented.
 
-用户明确指定的目录尚未登记时，在同一目标 Mac 核对该目录存在，将 `~/` 展开为该用户的 home、取得 realpath，然后运行 `[repoPath + "/bridge.mjs", "register-project", stableProjectId, absoluteProjectPath, projectTitle]`，登记一次后重新查询。这是该次授权目标的本机配置，不注册其他目录；ID 已指向别处时复用正确的现有 ID 或另选新 ID，保留旧登记。
+## Select the target project
 
-提交结果必须返回所选 `projectId` 和相同的规范 `cwd`。不一致立即停止派发并报告，不再提交另一个任务，也不通过 prompt 或直接 shell 执行绕过路由。项目选择不改变只读权限。
+Call `list_projects` first. Match the user's explicitly requested path against canonical `cwd` and obtain its `projectId`. A project name must match uniquely; ask only when selection is genuinely ambiguous. Installation `repoPath` and health `cwd` are not default task targets. A path mentioned in the prompt does not select the execution project.
 
-## 提交与查询
+If the explicitly requested directory is not registered, verify it exists on the same Mac, expand `~/` using that user's home, resolve its realpath, and run argv `[repoPath + "/bridge.mjs", "register-project", stableProjectId, absoluteProjectPath, projectTitle]`. Register once, then query again. This configures only the authorized target locally. If an ID identifies another directory, reuse the correct existing ID or choose a new one; preserve the old registration.
 
-- 为每次新任务生成一次稳定 `requestId`，例如 `grok-` 加 UUID；记录用户目标、`projectId`、规范 `cwd`、原始 prompt、可选 title 和返回 `id`。同一请求重试保持全部内容和 ID 不变；新目标用新 ID。相同 ID 的项目、prompt 或 title 改变会被拒绝；旧版任务继续用查询工具读取，新提交用新 ID。
-- `list_projects` 参数：空对象。返回已登记项目的 `id`、`title` 与规范 `cwd`。
-- `submit_task` 参数：`requestId`、`projectId`、`prompt`、可选 `title`。成功只表示已受理；立即记录 job ID，thread ID 可能稍后补齐。
-- `get_task` 参数：`taskId`。返回该任务实际状态和 `messages`。
-- `list_tasks` 参数：空对象。用于找回不确定或遗忘的任务；提交响应丢失时优先查询原 ID，不能换新 ID 盲目重派。
-- `wait_task` 参数：`taskId`、`timeoutMs`（0–30000；通常 10000）。默认同时等待执行终态和释放；`timedOut: true` 只表示本次等待结束。继续查询原任务，不取消或重新提交。聊天结束不影响后台执行。
-- `open_in_desktop` 参数：`taskId`。用户要求打开或接手时，先确认已有 `threadId` 和 `releasedAt`，再调用。运行中报告仍待释放；不要另行 resume、抢占或 fork。
+Submission must return the selected `projectId` and the same canonical `cwd`. On a mismatch, stop dispatch and report it. Do not submit a second task or bypass routing with a prompt or direct shell execution. Project selection retains read-only permissions.
 
-## 安全调用
+## Submit and query
 
-若 Shell 支持原生 argv/stdin，直接运行 `nodePath`，argv 为 `[repoPath + "/scripts/mcp-smoke.mjs", toolName, JSON.stringify(arguments)]`，无需 shell 拼接。
+- Generate one stable `requestId` for each new assignment, for example `grok-` plus a UUID. Retain the user's target, `projectId`, canonical `cwd`, original prompt, optional title and returned job `id`. Retries keep all contents and the ID unchanged; a new target needs a new ID. Reusing an ID with a changed project, prompt or title is rejected. Query legacy tasks as before; use a new ID for new submissions.
+- `list_projects`: empty arguments object. Returns registered project `id`, `title` and canonical `cwd`.
+- `submit_task`: `requestId`, `projectId`, `prompt`, optional `title`. Success means accepted only. Retain the job ID immediately; its thread ID may arrive later.
+- `get_task`: `taskId`. Returns actual task state and model `messages`.
+- `list_tasks`: empty arguments object. Returns summary metadata for recovery. Select the requested task, then use `get_task` for its answer. If a submission response is lost, recover the original ID instead of blindly dispatching again with a new ID.
+- `wait_task`: `taskId`, `timeoutMs` (0–30000; normally 10000). By default it waits for execution termination and release. `timedOut: true` ends only that wait. Query the same task again; do not cancel or resubmit. Ending the chat does not stop backend execution.
+- `open_in_desktop`: `taskId`. When the user requests opening or handoff, verify both `threadId` and `releasedAt` first. For an active task, report that release is pending; do not resume, seize or fork it separately.
 
-下例的 `selected-project-id` 必须替换为上一节实际选定的 ID。
+## Safe invocation
 
-若 Shell 只收命令文本，用固定包装器从标准输入读取 JSON，再以参数数组启动 smoke 客户端。**任务文本只能进入 JSON 数据，不能拼进 JavaScript 或 shell 源码。** 使用标准 JSON 序列化：文本换行编码成 `\n`，整个 envelope 占一个物理行。下例路径必须换成安装配置；路径的 POSIX 引号规则为：整体单引号包围，路径内每个单引号替换为 `'"'"'`，不得使用 JSON.stringify 充当 shell 转义。
+If Shell supports native argv/stdin, execute `nodePath` with argv `[repoPath + "/scripts/mcp-smoke.mjs", toolName, JSON.stringify(arguments)]`; no shell concatenation is needed.
+
+Replace `selected-project-id` below with the actual selected ID.
+
+If Shell accepts only command text, use a fixed wrapper that reads JSON from stdin and launches the smoke client with an argument array. **Task text belongs only in JSON data, never in JavaScript or shell source.** Serialize standard JSON: encode text newlines as `\n`, keeping the envelope on one physical line. Replace the example paths with installation settings. POSIX quoting wraps each path in single quotes and replaces each embedded single quote with `'"'"'`; `JSON.stringify` is not shell escaping.
 
 ```sh
 '/absolute/path/to/node' --input-type=module -e 'import {readFileSync} from "node:fs"; import {spawnSync} from "node:child_process"; const data=JSON.parse(readFileSync(0,"utf8")); const child=spawnSync(process.execPath,[process.argv[1],data.tool,JSON.stringify(data.arguments)],{stdio:"inherit"}); if(child.error) console.error("Local bridge client could not start"); process.exit(child.status ?? 1);' '/absolute/path/to/repo/scripts/mcp-smoke.mjs' <<'BRIDGE_REQUEST_JSON'
-{"tool":"submit_task","arguments":{"requestId":"grok-example-001","projectId":"selected-project-id","prompt":"不要调用工具或读写文件。只回复 CODEX_LOCAL_OK","title":"本机派活验证"}}
+{"tool":"submit_task","arguments":{"requestId":"grok-example-001","projectId":"selected-project-id","prompt":"Do not call tools or read/write files. Reply only CODEX_LOCAL_OK.","title":"Local dispatch verification"}}
 BRIDGE_REQUEST_JSON
 ```
 
-保持 heredoc 分隔符带引号；JSON 中不允许未转义的物理换行。若无法可靠序列化，暂停并报告，不能尝试执行未转义文本。自定义 stateDir 可通过 Shell 环境参数传入；仅有命令文本时使用同样的 POSIX 引号规则为该次进程设置环境。
+Keep the heredoc delimiter quoted and physical newlines escaped inside JSON. If reliable serialization is unavailable, stop and report it rather than execute unescaped text. Pass custom `stateDir` through Shell's environment argument when supported; with command text, use the same POSIX quoting for that process's environment assignment.
 
-## 结果与交接
+## Results and handoff
 
-smoke stdout 是 MCP 工具结果：先检查进程退出码和 `isError`，再解析 `content[0].text` 内的 JSON。工具错误不是任务成功；保留返回的具体错误，不能凭提示词推测结果。
+Smoke stdout is an MCP tool result. Check the process exit code and `isError`, then parse JSON inside `content[0].text`. Preserve specific tool errors; never infer a successful answer from the prompt.
 
-`wait_task` 的任务在 `task` 字段中，其他任务查询直接返回任务。`completed`、`failed`、`interrupted` 是执行终态；`releasedAt` 独立表示桥已经释放会话。完成但未释放时继续等待，不能宣称可接手。
+`wait_task` returns the task under `task`; other task queries return it directly. `completed`, `failed` and `interrupted` are execution terminal states. `releasedAt` independently confirms that the bridge released the conversation. Keep waiting if execution completed without release; it is not ready for handoff yet.
 
-回复包含所选项目与规范 `cwd`、job ID、thread ID（若有）、实际 status、释放状态及模型 `messages` 中的实际答复。用户要完整结果时完整呈现；只做摘要时注明摘要。失败/中断明确报告，不把终态统一叫成功。
+Return the selected project and canonical `cwd`, job ID, thread ID when available, actual status, release state, and the actual answer from model `messages`. Present the full result when requested; label an excerpt or summary. Report failure or interruption explicitly instead of calling every terminal state successful.
 
-打开成功只证明系统接受导航。只有实际 Desktop 正文或用户确认才证明同一会话可见；不得凭 `desktopUrl` 宣称界面验收通过。无需读取 token、Codex 认证文件或打印环境；任务正文与结果仍会分别进入 Codex 和 Grok 的模型服务。
+Successful opening proves navigation was accepted. Only visible Desktop conversation content or user confirmation proves the same thread is displayed; `desktopUrl` alone is insufficient. Never read tokens, Codex authentication files or dump environment variables. Task text and retrieved results still enter the respective Codex and host model services.
+
+## Distribution and privacy
+
+Publish or share the repository's generic skill source, not an installed copy with personal configuration appended. Generate distribution archives through INSTALL.md's packaging entry. Local `.bridge` state, project registration, task records, conversations and account memories belong to the recipient and stay outside public skills, templates, archives and support reports. Ordinary replies include only information needed for the current task; after listing, read only the task the user selected. Redact personal paths, identifiers, business content and credentials from outbound support material. During setup, explain that tasks and necessary context enter Codex, while queried information enters Grok or Cursor; a local bridge does not mean offline inference.

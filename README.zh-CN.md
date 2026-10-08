@@ -8,7 +8,7 @@
 
 我觉得 OpenAI Dots 还太早期，交互不好用，产品方向也不符合我想要的工作方式；但我仍然想保留 Codex。
 
-所以做了 **to codex**：在 Grok Bot 中派活，由**自己 Mac 上的 Codex** 执行，再查询实际状态和结果。需要审阅或接手时，释放会话后在官方 **Codex Desktop** 打开。
+所以做了 **to codex**：接入的是官方 **Codex Desktop，不是独立的 Codex CLI 工作流**。在 Grok Bot 中派活，由自己 Mac 上安装的 Desktop 内置 `app-server` 执行，使用其正常登录，再查询实际状态和结果；不需要另外安装 Codex CLI。需要审阅或接手时，释放会话后在 **Codex Desktop** 打开同一会话。桥与 Desktop 界面不会同时控制正在执行的会话。
 
 目前已经实现并验证的是**主动查询结果（pull）**；完成后自动推送消息、唤醒 Grok Bot 的 push 通知尚未实现。它是本机桥接工具，没有另做完整界面或多租户云服务。
 
@@ -28,15 +28,15 @@
 
 [Agent 安装指南（英文）](INSTALL.md) · [技能原件](plugins/grokbot-to-codex/skills/to-codex/SKILL.md) · [隐私说明](PRIVACY.md) · [MIT 许可证](LICENSE)
 
-**Dr. CodexBot** 是为本插件准备的 Grok Bot 模板。[角色设定与配置指南](templates/dr-codexbot/README.md)用于创建负责派活、查询结果和 Desktop 交接的 Bot；分享和导入的实际状态见[模板验收记录](templates/dr-codexbot/ACCEPTANCE.md)。
+**Dr. CodexBot** 是为本插件准备的 Grok Bot 模板。[角色设定与配置指南](templates/dr-codexbot/README.md)用于创建负责派活、查询结果和 Desktop 交接的 Bot；分享和导入的实际状态见[模板验收记录](https://github.com/semantic-craft/grokbot-to-codex/blob/main/templates/dr-codexbot/ACCEPTANCE.md)。
 
 ## 能做什么
 
-- **Grok Bot：** 保存为私有技能，使用已有的本机 Shell 工具。说出 **“to codex”** 并描述任务，或选择已保存的 **to codex** 技能。
+- **Grok Bot：** 提供计划在 Bot Marketplace 分发的通用 `to codex` 技能，使用已有的本机 Shell 工具。说出 **“to codex”** 并描述任务，或选择已保存的 **to codex** 技能。
 - **Cursor：** 提供符合 Cursor 格式的完整本地插件包，使用 `/to-codex`，共享同一份技能和运行程序。
 - **本机桥接服务：** 提供提交、查询、列表、限时等待和在 Desktop 打开的工具。MCP 客户端断开后，独立运行的后端仍可继续执行任务。
 
-整个仓库就是插件根目录；只复制技能文件会缺少运行程序。Grok Bot 导入任意本地插件包的方式尚未验证，已验证的私有技能路径不依赖原生 MCP 注册。**已提交 Cursor Marketplace，等待审核，尚未上架。**
+整个仓库就是插件根目录；只复制技能文件会缺少运行程序。当前 Grok 安装已通过保存技能库的入口验收，这不代表技能仅供私用，也不代表已在 Bot Marketplace 上架。每位用户在本机配置自己的 Mac、运行程序路径和目标项目；分发源码不包含发布者的个人配置。Grok Bot 导入任意本地插件包的方式尚未验证，保存技能的入口不依赖原生 MCP 注册。**已提交 Cursor Marketplace，等待审核，尚未上架。**
 
 ## 当前版本的范围
 
@@ -51,6 +51,7 @@ node bridge.mjs serve        # 在独立的本机终端中运行
 node bridge.mjs health
 node scripts/mcp-smoke.mjs  # 仅检查工具发现
 npm test                    # 隔离的契约测试，不调用模型
+npm run package:plugin      # 分发源码包，排除本机状态
 ```
 
 桥接服务监听 `127.0.0.1`，使用本机 bearer 认证。私有状态保存在 `.bridge/`，该目录已被 Git 忽略。安全配置、真实验收、更新与卸载步骤见[安装指南](INSTALL.md)。

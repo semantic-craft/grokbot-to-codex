@@ -11,7 +11,7 @@
 - 从菜单选择技能后，只发送自然语言目标：“给本机 Codex 派只读测试，不调用工具或读写文件，只回复 GROKBOT_PLUGIN_LOCAL_OK；查结果后打开官方 Desktop。”请求没有路径或命令。
 - GrokBot 自行选择本机、检查 health、提交、等待、读取实际结果并调用打开入口。桥记录为 `completed` 且包含 `releasedAt`；实际答复 `GROKBOT_PLUGIN_LOCAL_OK`。官方 Desktop 读取接口返回同一 thread 的完整用户消息及最终答复，状态为 idle。
 
-自然语言任务标识：job `grok-6863af4d-a076-4200-b87f-6621517abd5b`；thread `01a11682-12be-75a2-bcb0-b03a2572d9f9`。仅为公开测试标记任务，不含真实业务内容。
+本次仅使用无业务内容的测试标记任务。可恢复任务的 job/thread 标识留在本机验收记录中，不随分发材料公开。
 
 ## 尚未通过或不在本次证据内
 

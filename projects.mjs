@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, realpathSync, statSync, writeFileSync, renameSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, statSync, writeFileSync, renameSync, chmodSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 
 export function projectDirectory(path) {
@@ -11,6 +11,7 @@ export function projectDirectory(path) {
 
 export function projectRegistry(state) {
   const path = join(state, 'projects.json');
+  if (existsSync(path)) chmodSync(path, 0o600);
   const projects = Object.assign(Object.create(null), existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {});
   function register(input) {
     if (!input || typeof input.id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(input.id)) throw new Error('A valid stable project ID is required');

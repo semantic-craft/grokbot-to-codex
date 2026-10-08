@@ -11,7 +11,7 @@ const tools = [
   { name: 'list_projects', description: 'List registered projects with their stable ID and canonical working directory. Select the requested project before submitting.', inputSchema: schema({}) },
   { name: 'submit_task', description: 'Submit a read-only task to an explicitly selected registered project on this Mac. Returns immediately; retain the stable requestId for identical retries.', inputSchema: schema({ requestId: id, projectId: id, prompt: text, title: text }, ['requestId', 'projectId', 'prompt']) },
   { name: 'get_task', description: 'Read actual task state and model messages; releasedAt separately confirms Desktop handoff readiness.', inputSchema: schema({ taskId: id }, ['taskId']) },
-  { name: 'list_tasks', description: 'Find existing tasks and their results on this Mac.', inputSchema: schema({}) },
+  { name: 'list_tasks', description: 'Find existing tasks by summary metadata on this Mac. Read only the selected task with get_task to retrieve messages.', inputSchema: schema({}) },
   { name: 'wait_task', description: 'Wait up to timeoutMs (maximum 30000). Timeout never cancels execution. By default wait for session release too.', inputSchema: schema({ taskId: id, timeoutMs: { type: 'integer', minimum: 0, maximum: 30000, default: 10000 }, untilReleased: { type: 'boolean', default: true } }, ['taskId']) },
   { name: 'open_in_desktop', description: 'Open the same completed, released thread in official Codex Desktop. Refuses active sessions.', inputSchema: schema({ taskId: id }, ['taskId']) },
 ];
@@ -49,7 +49,7 @@ async function dispatch(message) {
   if (!message || Array.isArray(message) || message.jsonrpc !== '2.0' || typeof message.method !== 'string' || (message.params !== undefined && (!message.params || typeof message.params !== 'object' || Array.isArray(message.params)))) return send({ id: message?.id ?? null, error: { code: -32600, message: 'Invalid Request' } });
   const { id, method, params = {} } = message;
   if (id === undefined) return;
-  if (method === 'initialize') return send({ id, result: { protocolVersion: ['2024-11-05', '2025-03-26', '2025-06-18'].includes(params.protocolVersion) ? params.protocolVersion : '2025-06-18', capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'grokbot-to-codex', version: '0.3.0' } } });
+  if (method === 'initialize') return send({ id, result: { protocolVersion: ['2024-11-05', '2025-03-26', '2025-06-18'].includes(params.protocolVersion) ? params.protocolVersion : '2025-06-18', capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'grokbot-to-codex', version: '0.3.1' } } });
   if (method === 'ping') return send({ id, result: {} });
   if (method === 'tools/list') return send({ id, result: { tools } });
   if (method === 'tools/call') {

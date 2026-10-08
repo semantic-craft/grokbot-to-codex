@@ -4,13 +4,15 @@ When the user asks you to install this project, carry out the applicable steps b
 
 **Success:** the host discovers `to-codex`, a read-only task produces an actual Codex response, and its released thread can be read in official Codex Desktop. Report any unverified step separately.
 
+**Product target: official Codex Desktop, not a standalone Codex CLI workflow.** This bridge calls the app-server bundled with the installed Desktop application and uses its normal authentication. Do not require or install a separate Codex CLI package. Desktop handoff becomes available after the bridge releases the conversation; bridge execution does not imply that the Desktop UI is simultaneously running the task.
+
 ## 1. Identify the computer and prerequisites
 
 - **Grok Bot:** use `ListMachines` to identify the user's connected Mac. Every Shell call must explicitly target that machine. Confirm the user's choice if several machines are plausible. A cloud terminal is not a substitute.
 - **Cursor:** use a local macOS window and terminal; confirm the host and `uname -s` (`Darwin`). Stop if this is an SSH, container, or cloud workspace instead of the requested Mac.
 - **Another installation agent:** you may prepare this package locally, but use Grok Bot or Cursor's actual supported interface to register the skill. Do not claim the target host discovered it merely because files exist.
 
-Check `node --version`, `node -p process.execPath`, and Git availability using a non-login shell. Node.js 22+ is required. If prerequisites are missing, report them; do not install unrelated toolchains or request credentials in chat.
+Check `node --version`, `node -p process.execPath`, and Git availability using a non-login shell. Node.js 22+ is required; Git is optional when using the source archive below. If prerequisites are missing, report them and assist with their official installation flow within the user's authorization; do not install unrelated toolchains or request credentials in chat.
 
 Locate the user's installed official Codex Desktop and its embedded Codex executable. The tested default is `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`; app names and paths can differ. Confirm the actual executable with `--version`. If a nondefault path is needed, pass `CODEX_BINARY` to the bridge process. Authentication remains in the official application: ask the user to finish its normal sign-in if needed, never read or print authentication files.
 
@@ -25,6 +27,8 @@ For a new Grok Bot installation, the default is:
 ```sh
 git clone --branch main https://github.com/semantic-craft/grokbot-to-codex.git "$HOME/Projects/grokbot-to-codex"
 ```
+
+If Git is unavailable, use the public source archive on that Mac. Create a fresh staging directory, download `https://github.com/semantic-craft/grokbot-to-codex/archive/refs/heads/main.tar.gz` with HTTPS, and inspect the archive inventory before extraction. Reject absolute paths or parent-directory traversal. Extract into the staging directory, verify the root manifest and complete runtime, then move that root to the chosen unoccupied installation directory. Never extract over an existing installation or use an arbitrary download mirror. Updates to an archive installation use a freshly verified source copy, retain local state, and replace its runtime only after active tasks finish.
 
 For Cursor, use the selected complete repository as the local plugin source. In **Customize → Plugins → Add → From Local Repository**, select that repository root. A folder placed under `~/.cursor/plugins/local` may expose its skill without registering the plugin; check the Plugins view after import. Do not create a second copy merely for Cursor when the existing repository can be imported.
 
@@ -67,7 +71,9 @@ Registration persists canonical paths in `.bridge/projects.json`. Query `list_pr
 
 ### Register the skill in the chosen host
 
-### Grok Bot private skill
+### Grok Bot skill installation
+
+`to codex` is a reusable skill intended for Bot Marketplace distribution. The procedure below describes the currently verified saved-skill installation route, whose UI calls the library “Private skills”; it does not restrict the skill to private use or establish Marketplace publication. Keep distributable skill/template source separate from each user's installation configuration and registered project paths. A Marketplace copy still needs the complete local runtime and the user's own setup.
 
 Use the actual Bot to read `plugins/grokbot-to-codex/skills/to-codex/SKILL.md` from the selected Mac and save it as a private skill with display name `to codex` (`UpdateSkill` name: `to codex`; use `to-codex` as the internal identifier only if the actual tool supports choosing it). Preserve the source procedure and add these installation-specific values to its saved body:
 
@@ -77,9 +83,11 @@ Use the actual Bot to read `plugins/grokbot-to-codex/skills/to-codex/SKILL.md` f
 
 When the host exposes `UpdateSkill`, inspect its actual schema and use its supported write operation with name, description and body. If this installation already has the earlier `codex-local` skill, update and rename that exact existing skill by its verified ID; do not create a duplicate or remove unrelated skills. Preserve same-named skills from other sources. If the installer cannot access the Bot's skill tools, ask the Bot to save the supplied source rather than writing guessed internal files.
 
+Explain during setup that these saved host settings, project names/paths queried by the skill, task summaries and retrieved answers enter the host conversation; task context enters Codex. Keep tokens in local bridge state. Use the source skill for distribution, not this configured installation copy.
+
 Check the `to codex` skill through `/` in a new Bot message or **Marketplace → Your plugins → Manage plugins and skills → Private skills**. Saving a local file or editing Grok CLI configuration is not registration. The private library is shared across Bots, but each Bot still needs access to the selected Mac.
 
-This is the supported private-skill route. Importing an arbitrary local Cursor-format plugin into Grok Bot has not been verified. Do not invent a Grok plugin directory or claim native MCP registration.
+This is the verified saved-skill route. Importing an arbitrary local Cursor-format plugin into Grok Bot has not been verified. Do not invent a Grok plugin directory or claim native MCP registration.
 
 ### Cursor local plugin
 
@@ -114,5 +122,9 @@ For later updates, inspect local changes and the existing remote first. Use a no
 To uninstall, disable/remove only this host's verified `to codex` (Cursor: `to-codex`) skill/plugin and stop only its identified bridge terminal. Preserve or archive `.bridge` if the user wants task history; never remove Codex's own conversations, credentials, other plugins, or unrelated servers. Package removal and private-skill removal are separate actions.
 
 Current scope: macOS, read-only work in explicitly registered projects, explicit result queries, released-thread Desktop handoff. Writing approvals, queue scheduling, cancellation, resume, notification delivery and unattended service installation are not part of this release. No Windows support or Grok native-MCP installation is claimed. Marketplace publication is a separate reviewed process, not an outcome of these instructions.
+
+## 7. Prepare distribution source
+
+Run `npm run package:plugin` from the reviewed repository. It creates a new versioned archive under ignored `dist/` using an explicit source allowlist; an existing archive is not overwritten. It excludes `.bridge`, Git history, operational acceptance records and research notes, and rejects symlinked source or recognizable personal paths/API keys. Inspect the archive inventory and the generic skill/template content before uploading. Publish source without appended installation settings, project registration, task history or account memory. The archive is not an official Grok import format and does not prove Bot Marketplace approval.
 
 References: [Cursor plugin format and local loading](https://cursor.com/docs/reference/plugins), [Grok Bot private skills](https://docs.x.ai/grok-bot/skills-routines-and-automations).
