@@ -29,15 +29,15 @@ opens in official Codex Desktop.
 
 [Agent installation guide](INSTALL.md) · [Skill source](plugins/grokbot-to-codex/skills/to-codex/SKILL.md) · [Privacy](PRIVACY.md) · [MIT license](LICENSE)
 
-**Dr. CodexBot** is the dedicated Grok Bot template for this plugin. Its [profile and setup guide](templates/dr-codexbot/README.md) let you create a Bot that owns dispatch, result retrieval and Desktop handoff. See [template acceptance](templates/dr-codexbot/ACCEPTANCE.md) for the live sharing and import status.
+**Dr. CodexBot** is the dedicated Grok Bot template for this plugin. Its [profile and setup guide](templates/dr-codexbot/README.md) let you create a Bot that owns dispatch, result retrieval and Desktop handoff. See [template acceptance](https://github.com/semantic-craft/grokbot-to-codex/blob/main/templates/dr-codexbot/ACCEPTANCE.md) for the live sharing and import status.
 
 ## What you get
 
-- **Grok Bot:** a saved private skill using its existing local-computer Shell tools. Say **“to codex”** and describe the task (or select the saved **to codex** skill).
+- **Grok Bot:** a reusable `to codex` skill intended for Bot Marketplace distribution, using its existing local-computer Shell tools. Say **“to codex”** and describe the task (or select the saved **to codex** skill).
 - **Cursor:** a distributable Cursor-format local plugin with `/to-codex`, sharing the same skill and runtime.
 - **Local bridge:** submit, get, list, bounded wait and open-in-Desktop tools. MCP clients may disconnect while work continues in the separately running backend.
 
-The entire repository is the plugin root. Installing only the skill file omits its runtime. Grok Bot's arbitrary local plugin-package import is unverified; its private-skill route works independently of native MCP registration. **Submitted to Cursor Marketplace; awaiting review and not yet listed.**
+The entire repository is the plugin root. Installing only the skill file omits its runtime. The current Grok installation was verified through its saved-skill library; this does not make the skill private-only or prove Bot Marketplace publication. Each user configures their own Mac, runtime paths and target projects locally; the distributable source contains no publisher-specific configuration. Grok Bot's arbitrary local plugin-package import is unverified, and the saved-skill route works independently of native MCP registration. **Submitted to Cursor Marketplace; awaiting review and not yet listed.**
 
 ## MVP boundaries
 
@@ -52,6 +52,7 @@ node bridge.mjs serve        # separate local terminal
 node bridge.mjs health
 node scripts/mcp-smoke.mjs  # tool discovery only
 npm test                    # isolated contract tests, no model calls
+npm run package:plugin      # reviewed distribution source, no local state
 ```
 
 The bridge binds to `127.0.0.1` and uses local bearer authentication. `.bridge/` holds private state and is excluded from Git. See the [installation guide](INSTALL.md) for safe configuration, real acceptance, updates and uninstalling.

@@ -4,7 +4,7 @@ import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { connect, BINARY } from './codex.mjs';
 import { randomBytes, timingSafeEqual, createHash } from 'node:crypto';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, STATE, PORT, BASE, call } from './bridge-client.mjs';
 import { projectRegistry } from './projects.mjs';
@@ -15,14 +15,20 @@ const dataPath = join(STATE, 'jobs.json');
 const mode = process.argv[2] || 'help';
 
 function readJSON(path, fallback) { return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : fallback; }
-function privateWrite(path, data) { writeFileSync(path, data, { mode: 0o600 }); }
+function privateWrite(path, data) { writeFileSync(path, data, { mode: 0o600 }); chmodSync(path, 0o600); }
+function taskSummary(job) {
+  const fields = ['id', 'projectId', 'cwd', 'title', 'status', 'createdAt', 'finishedAt', 'releasedAt', 'threadId'];
+  return Object.fromEntries(fields.filter(key => job[key] !== undefined).map(key => [key, job[key]]));
+}
 function loadToken() { return readFileSync(tokenPath, 'utf8').trim(); }
 function equal(a, b) { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); }
 function openThread(id) { return new Promise((resolve, reject) => { const child = spawn('/usr/bin/open', [`codex://threads/${encodeURIComponent(id)}`], { stdio: 'ignore' }); child.on('error', () => reject(new Error('Could not open Codex Desktop'))); child.on('exit', code => code === 0 ? resolve() : reject(new Error('Could not open Codex Desktop'))); }); }
 
 async function serve() {
   mkdirSync(STATE, { recursive: true, mode: 0o700 });
+  chmodSync(STATE, 0o700);
   if (!existsSync(tokenPath)) privateWrite(tokenPath, randomBytes(32).toString('hex'));
+  chmodSync(tokenPath, 0o600);
   const token = loadToken();
   const jobs = Object.assign(Object.create(null), readJSON(dataPath, {}));
   const projects = projectRegistry(STATE);
@@ -86,9 +92,9 @@ async function serve() {
     if (req.headers.origin || req.headers.host !== `127.0.0.1:${PORT}`) return reply(403, { error: 'Local CLI access only' });
     if (!equal(req.headers.authorization || '', `Bearer ${token}`)) return reply(401, { error: 'Unauthorized' });
     const path = req.url;
-    if (req.method === 'GET' && path === '/health') return reply(200, { alive: true, cwd: ROOT, binary: BINARY, userAgent: initialized.userAgent, mode: 'read-only', version: '0.3.0', projectSelection: 'registered-project-id' });
+    if (req.method === 'GET' && path === '/health') return reply(200, { alive: true, cwd: ROOT, binary: BINARY, userAgent: initialized.userAgent, mode: 'read-only', version: '0.3.1', projectSelection: 'registered-project-id' });
     if (req.method === 'GET' && path === '/projects') return reply(200, projects.list());
-    if (req.method === 'GET' && path === '/jobs') return reply(200, Object.values(jobs));
+    if (req.method === 'GET' && path === '/jobs') return reply(200, Object.values(jobs).map(taskSummary));
     const match = /^\/jobs\/([a-zA-Z0-9_-]+)$/.exec(path);
     if (req.method === 'GET' && match) return reply(jobs[match[1]] ? 200 : 404, jobs[match[1]] || { error: 'Unknown job' });
     const openMatch = /^\/jobs\/([a-zA-Z0-9_-]+)\/open$/.exec(path);

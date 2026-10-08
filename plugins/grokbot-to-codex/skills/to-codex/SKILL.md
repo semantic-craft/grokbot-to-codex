@@ -9,7 +9,7 @@ description: 当用户说“to codex”、要求给 Codex 派活、查询 Codex 
 
 ## 首次配置与运行前检查
 
-本仓库根目录同时是插件根目录，运行时只有一份。首次使用先发现实际路径：若宿主提供已加载技能文件路径，从该技能目录向上四层取得插件根目录；核实其中存在 `bridge.mjs` 和 `scripts/mcp-smoke.mjs`，不要把当前编辑项目误作插件根目录。私有技能副本没有文件定位信息时，使用安装时保存的 `repoPath`；确实找不到才询问用户安装位置。
+本技能供不同用户安装使用；分发正文只保存流程和占位示例，使用者的机器、路径和项目登记留在各自的本机安装配置中。本仓库根目录同时是插件根目录，运行时只有一份。首次使用先发现实际路径：若宿主提供已加载技能文件路径，从该技能目录向上四层取得插件根目录；核实其中存在 `bridge.mjs` 和 `scripts/mcp-smoke.mjs`，不要把当前编辑项目误作插件根目录。保存技能副本没有文件定位信息时，使用安装时保存的 `repoPath`；确实找不到才询问用户安装位置。
 
 在目标 Mac 核实 `node -p process.execPath` 和 `node --version`，保存 `nodePath`（Node 22+ 的绝对路径）、`repoPath`（插件根目录绝对路径）。检查官方 Desktop 内置 Codex 的实际安装位置；默认候选是 `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`，其他安装通过现有服务的 `CODEX_BINARY` 配置，不下载替代 CLI，也不读认证文件。可选 `stateDir` 必须与后台的 `BRIDGE_STATE_DIR` 一致。
 
@@ -33,7 +33,7 @@ description: 当用户说“to codex”、要求给 Codex 派活、查询 Codex 
 - `list_projects` 参数：空对象。返回已登记项目的 `id`、`title` 与规范 `cwd`。
 - `submit_task` 参数：`requestId`、`projectId`、`prompt`、可选 `title`。成功只表示已受理；立即记录 job ID，thread ID 可能稍后补齐。
 - `get_task` 参数：`taskId`。返回该任务实际状态和 `messages`。
-- `list_tasks` 参数：空对象。用于找回不确定或遗忘的任务；提交响应丢失时优先查询原 ID，不能换新 ID 盲目重派。
+- `list_tasks` 参数：空对象。只返回任务摘要，用于找回不确定或遗忘的任务；选定后调用 `get_task` 读取该任务回答。提交响应丢失时优先查询原 ID，不能换新 ID 盲目重派。
 - `wait_task` 参数：`taskId`、`timeoutMs`（0–30000；通常 10000）。默认同时等待执行终态和释放；`timedOut: true` 只表示本次等待结束。继续查询原任务，不取消或重新提交。聊天结束不影响后台执行。
 - `open_in_desktop` 参数：`taskId`。用户要求打开或接手时，先确认已有 `threadId` 和 `releasedAt`，再调用。运行中报告仍待释放；不要另行 resume、抢占或 fork。
 
@@ -62,3 +62,7 @@ smoke stdout 是 MCP 工具结果：先检查进程退出码和 `isError`，再�
 回复包含所选项目与规范 `cwd`、job ID、thread ID（若有）、实际 status、释放状态及模型 `messages` 中的实际答复。用户要完整结果时完整呈现；只做摘要时注明摘要。失败/中断明确报告，不把终态统一叫成功。
 
 打开成功只证明系统接受导航。只有实际 Desktop 正文或用户确认才证明同一会话可见；不得凭 `desktopUrl` 宣称界面验收通过。无需读取 token、Codex 认证文件或打印环境；任务正文与结果仍会分别进入 Codex 和 Grok 的模型服务。
+
+## 分发与隐私
+
+上架或分享使用仓库的通用技能原件；已追加个人配置的安装副本不作为分发来源。按 INSTALL.md 的打包入口生成分发包。本机 `.bridge`、项目登记、任务记录、会话及账户记忆属于使用者的本地状态，保持在公开技能、模板、归档和支持报告之外。普通回复只包含当前任务需要的信息；查询列表后只读取用户指定的任务，外发支持材料先移除个人路径、标识符、业务正文和凭据。首次配置说明任务/必要上下文进入 Codex，查询信息进入 Grok 或 Cursor；本机桥不等于离线推理。

@@ -27,17 +27,18 @@ test('MCP initializes and advertises callable task tools without starting work',
   } finally { client.close(); }
 });
 
-import { mkdtemp, rm, readFile, mkdir, rename, symlink, writeFile, realpath } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, mkdir, rename, symlink, writeFile, realpath, chmod, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import net from 'node:net';
-async function backend(t) {
+async function backend(t, prepare = async () => {}) {
   const state = await realpath(await mkdtemp(join(tmpdir(), 'bridge-contract-')));
   const reservation = net.createServer();
   await new Promise(resolve => reservation.listen(0, '127.0.0.1', resolve));
   const port = reservation.address().port;
   await new Promise(resolve => reservation.close(resolve));
   const env = { BRIDGE_STATE_DIR: state, BRIDGE_PORT: String(port), CODEX_BINARY: join(root, 'test/fixtures/app-server.mjs') };
+  await prepare(state);
   const child = spawn(process.execPath, ['bridge.mjs', 'serve'], { cwd: root, env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
   t.after(async () => { child.kill(); await new Promise(resolve => child.exitCode !== null ? resolve() : child.once('exit', resolve)); await rm(state, { recursive: true, force: true }); });
   await new Promise((resolve, reject) => { child.stdout.once('data', resolve); child.once('exit', () => reject(new Error('backend failed to start'))); });
@@ -81,6 +82,30 @@ test('MCP routes a registered non-Git project to its real directory and rejects 
   assert.equal(payload(await tool(client, 'submit_task', args)).threadId, completed.task.threadId);
   assert.equal((await tool(client, 'submit_task', { ...args, prompt: 'Changed request' })).isError, true);
   assert.equal(payload(await tool(client, 'list_tasks')).length, 1);
+});
+
+test('task discovery returns summaries, while selected reads retain the actual answer', { timeout: 10000 }, async t => {
+  const secret = 'FIXTURE_PRIVATE_ANSWER_NOT_FOR_DISCOVERY';
+  const { env } = await backend(t, async state => {
+    await writeFile(join(state, 'jobs.json'), JSON.stringify({ prior: { id: 'prior', title: 'Earlier task', status: 'completed', messages: [secret], error: secret, requestHash: secret, threadId: 'fixture-history' } }));
+  });
+  const client = mcp(env); t.after(() => client.close());
+  const listed = payload(await tool(client, 'list_tasks'));
+  assert.equal(JSON.stringify(listed).includes(secret), false);
+  assert.deepEqual(listed, [{ id: 'prior', title: 'Earlier task', status: 'completed', threadId: 'fixture-history' }]);
+  assert.deepEqual(payload(await tool(client, 'get_task', { taskId: 'prior' })).messages, [secret]);
+});
+
+test('startup restricts pre-existing bridge state permissions', { timeout: 10000 }, async t => {
+  const { state } = await backend(t, async state => {
+    await chmod(state, 0o755);
+    await writeFile(join(state, 'token'), 'fixture-local-token', { mode: 0o644 });
+    await writeFile(join(state, 'jobs.json'), '{}', { mode: 0o644 });
+    await writeFile(join(state, 'connection.json'), '{}', { mode: 0o644 });
+    await writeFile(join(state, 'projects.json'), '{}', { mode: 0o644 });
+  });
+  assert.equal((await stat(state)).mode & 0o777, 0o700);
+  for (const name of ['token', 'jobs.json', 'connection.json', 'projects.json']) assert.equal((await stat(join(state, name))).mode & 0o777, 0o600, name);
 });
 
 test('registration canonicalizes paths and rejects invalid or changed project identities before execution', { timeout: 12000 }, async t => {

@@ -28,15 +28,15 @@
 
 [Agent 安装指南（英文）](INSTALL.md) · [技能原件](plugins/grokbot-to-codex/skills/to-codex/SKILL.md) · [隐私说明](PRIVACY.md) · [MIT 许可证](LICENSE)
 
-**Dr. CodexBot** 是为本插件准备的 Grok Bot 模板。[角色设定与配置指南](templates/dr-codexbot/README.md)用于创建负责派活、查询结果和 Desktop 交接的 Bot；分享和导入的实际状态见[模板验收记录](templates/dr-codexbot/ACCEPTANCE.md)。
+**Dr. CodexBot** 是为本插件准备的 Grok Bot 模板。[角色设定与配置指南](templates/dr-codexbot/README.md)用于创建负责派活、查询结果和 Desktop 交接的 Bot；分享和导入的实际状态见[模板验收记录](https://github.com/semantic-craft/grokbot-to-codex/blob/main/templates/dr-codexbot/ACCEPTANCE.md)。
 
 ## 能做什么
 
-- **Grok Bot：** 保存为私有技能，使用已有的本机 Shell 工具。说出 **“to codex”** 并描述任务，或选择已保存的 **to codex** 技能。
+- **Grok Bot：** 提供计划在 Bot Marketplace 分发的通用 `to codex` 技能，使用已有的本机 Shell 工具。说出 **“to codex”** 并描述任务，或选择已保存的 **to codex** 技能。
 - **Cursor：** 提供符合 Cursor 格式的完整本地插件包，使用 `/to-codex`，共享同一份技能和运行程序。
 - **本机桥接服务：** 提供提交、查询、列表、限时等待和在 Desktop 打开的工具。MCP 客户端断开后，独立运行的后端仍可继续执行任务。
 
-整个仓库就是插件根目录；只复制技能文件会缺少运行程序。Grok Bot 导入任意本地插件包的方式尚未验证，已验证的私有技能路径不依赖原生 MCP 注册。**已提交 Cursor Marketplace，等待审核，尚未上架。**
+整个仓库就是插件根目录；只复制技能文件会缺少运行程序。当前 Grok 安装已通过保存技能库的入口验收，这不代表技能仅供私用，也不代表已在 Bot Marketplace 上架。每位用户在本机配置自己的 Mac、运行程序路径和目标项目；分发源码不包含发布者的个人配置。Grok Bot 导入任意本地插件包的方式尚未验证，保存技能的入口不依赖原生 MCP 注册。**已提交 Cursor Marketplace，等待审核，尚未上架。**
 
 ## 当前版本的范围
 
@@ -51,6 +51,7 @@ node bridge.mjs serve        # 在独立的本机终端中运行
 node bridge.mjs health
 node scripts/mcp-smoke.mjs  # 仅检查工具发现
 npm test                    # 隔离的契约测试，不调用模型
+npm run package:plugin      # 分发源码包，排除本机状态
 ```
 
 桥接服务监听 `127.0.0.1`，使用本机 bearer 认证。私有状态保存在 `.bridge/`，该目录已被 Git 忽略。安全配置、真实验收、更新与卸载步骤见[安装指南](INSTALL.md)。

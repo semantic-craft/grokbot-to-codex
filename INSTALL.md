@@ -67,7 +67,9 @@ Registration persists canonical paths in `.bridge/projects.json`. Query `list_pr
 
 ### Register the skill in the chosen host
 
-### Grok Bot private skill
+### Grok Bot skill installation
+
+`to codex` is a reusable skill intended for Bot Marketplace distribution. The procedure below describes the currently verified saved-skill installation route, whose UI calls the library “Private skills”; it does not restrict the skill to private use or establish Marketplace publication. Keep distributable skill/template source separate from each user's installation configuration and registered project paths. A Marketplace copy still needs the complete local runtime and the user's own setup.
 
 Use the actual Bot to read `plugins/grokbot-to-codex/skills/to-codex/SKILL.md` from the selected Mac and save it as a private skill with display name `to codex` (`UpdateSkill` name: `to codex`; use `to-codex` as the internal identifier only if the actual tool supports choosing it). Preserve the source procedure and add these installation-specific values to its saved body:
 
@@ -77,9 +79,11 @@ Use the actual Bot to read `plugins/grokbot-to-codex/skills/to-codex/SKILL.md` f
 
 When the host exposes `UpdateSkill`, inspect its actual schema and use its supported write operation with name, description and body. If this installation already has the earlier `codex-local` skill, update and rename that exact existing skill by its verified ID; do not create a duplicate or remove unrelated skills. Preserve same-named skills from other sources. If the installer cannot access the Bot's skill tools, ask the Bot to save the supplied source rather than writing guessed internal files.
 
+Explain during setup that these saved host settings, project names/paths queried by the skill, task summaries and retrieved answers enter the host conversation; task context enters Codex. Keep tokens in local bridge state. Use the source skill for distribution, not this configured installation copy.
+
 Check the `to codex` skill through `/` in a new Bot message or **Marketplace → Your plugins → Manage plugins and skills → Private skills**. Saving a local file or editing Grok CLI configuration is not registration. The private library is shared across Bots, but each Bot still needs access to the selected Mac.
 
-This is the supported private-skill route. Importing an arbitrary local Cursor-format plugin into Grok Bot has not been verified. Do not invent a Grok plugin directory or claim native MCP registration.
+This is the verified saved-skill route. Importing an arbitrary local Cursor-format plugin into Grok Bot has not been verified. Do not invent a Grok plugin directory or claim native MCP registration.
 
 ### Cursor local plugin
 
@@ -114,5 +118,9 @@ For later updates, inspect local changes and the existing remote first. Use a no
 To uninstall, disable/remove only this host's verified `to codex` (Cursor: `to-codex`) skill/plugin and stop only its identified bridge terminal. Preserve or archive `.bridge` if the user wants task history; never remove Codex's own conversations, credentials, other plugins, or unrelated servers. Package removal and private-skill removal are separate actions.
 
 Current scope: macOS, read-only work in explicitly registered projects, explicit result queries, released-thread Desktop handoff. Writing approvals, queue scheduling, cancellation, resume, notification delivery and unattended service installation are not part of this release. No Windows support or Grok native-MCP installation is claimed. Marketplace publication is a separate reviewed process, not an outcome of these instructions.
+
+## 7. Prepare distribution source
+
+Run `npm run package:plugin` from the reviewed repository. It creates a new versioned archive under ignored `dist/` using an explicit source allowlist; an existing archive is not overwritten. It excludes `.bridge`, Git history, operational acceptance records and research notes, and rejects symlinked source or recognizable personal paths/API keys. Inspect the archive inventory and the generic skill/template content before uploading. Publish source without appended installation settings, project registration, task history or account memory. The archive is not an official Grok import format and does not prove Bot Marketplace approval.
 
 References: [Cursor plugin format and local loading](https://cursor.com/docs/reference/plugins), [Grok Bot private skills](https://docs.x.ai/grok-bot/skills-routines-and-automations).
