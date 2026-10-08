@@ -24,7 +24,7 @@ The Bot follows the [installation guide](../../INSTALL.md) and reuses the [exist
 - “What happened to the task I just submitted? Show me the actual answer.”
 - “Open that completed conversation in Codex Desktop.”
 
-Current limits: macOS, read-only tasks with the working directory fixed to the plugin repository, explicit result queries, and a separately running local service. Cross-project coding, writes and automatic completion notifications require future bridge work. The template does not add them.
+Current limits: macOS, read-only tasks in explicitly selected registered projects, explicit result queries, and a separately running local service. Queue scheduling, writes and automatic completion notifications require future bridge work. The template does not add them.
 
 ## Share a template
 

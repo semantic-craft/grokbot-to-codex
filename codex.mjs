@@ -41,7 +41,7 @@ export async function connect(cwd, onEvent = () => {}) {
   };
   try {
     const initialized = await request('initialize', {
-      clientInfo: { name: 'grokbot_to_codex', title: 'GrokBot to Codex', version: '0.2.0' },
+      clientInfo: { name: 'grokbot_to_codex', title: 'GrokBot to Codex', version: '0.3.0' },
       capabilities: { experimentalApi: true },
     });
     send({ method: 'initialized', params: {} });

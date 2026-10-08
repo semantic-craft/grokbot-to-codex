@@ -8,7 +8,8 @@ const text = { type: 'string', minLength: 1 };
 const id = { ...text, pattern: '^[a-zA-Z0-9_-]{1,100}$' };
 const schema = (properties, required = []) => ({ type: 'object', properties, required, additionalProperties: false });
 const tools = [
-  { name: 'submit_task', description: 'Submit a read-only task on this Mac. Returns immediately; retain the stable requestId for retries.', inputSchema: schema({ requestId: id, prompt: text, title: text }, ['requestId', 'prompt']) },
+  { name: 'list_projects', description: 'List registered projects with their stable ID and canonical working directory. Select the requested project before submitting.', inputSchema: schema({}) },
+  { name: 'submit_task', description: 'Submit a read-only task to an explicitly selected registered project on this Mac. Returns immediately; retain the stable requestId for identical retries.', inputSchema: schema({ requestId: id, projectId: id, prompt: text, title: text }, ['requestId', 'projectId', 'prompt']) },
   { name: 'get_task', description: 'Read actual task state and model messages; releasedAt separately confirms Desktop handoff readiness.', inputSchema: schema({ taskId: id }, ['taskId']) },
   { name: 'list_tasks', description: 'Find existing tasks and their results on this Mac.', inputSchema: schema({}) },
   { name: 'wait_task', description: 'Wait up to timeoutMs (maximum 30000). Timeout never cancels execution. By default wait for session release too.', inputSchema: schema({ taskId: id, timeoutMs: { type: 'integer', minimum: 0, maximum: 30000, default: 10000 }, untilReleased: { type: 'boolean', default: true } }, ['taskId']) },
@@ -27,6 +28,7 @@ function validate(tool, args) {
 }
 async function execute(name, args) {
   const path = `/jobs/${encodeURIComponent(args.taskId)}`;
+  if (name === 'list_projects') return call('/projects');
   if (name === 'submit_task') return call('/jobs', args);
   if (name === 'get_task') return call(path);
   if (name === 'list_tasks') return call('/jobs');
@@ -47,7 +49,7 @@ async function dispatch(message) {
   if (!message || Array.isArray(message) || message.jsonrpc !== '2.0' || typeof message.method !== 'string' || (message.params !== undefined && (!message.params || typeof message.params !== 'object' || Array.isArray(message.params)))) return send({ id: message?.id ?? null, error: { code: -32600, message: 'Invalid Request' } });
   const { id, method, params = {} } = message;
   if (id === undefined) return;
-  if (method === 'initialize') return send({ id, result: { protocolVersion: ['2024-11-05', '2025-03-26', '2025-06-18'].includes(params.protocolVersion) ? params.protocolVersion : '2025-06-18', capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'grokbot-to-codex', version: '0.2.0' } } });
+  if (method === 'initialize') return send({ id, result: { protocolVersion: ['2024-11-05', '2025-03-26', '2025-06-18'].includes(params.protocolVersion) ? params.protocolVersion : '2025-06-18', capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'grokbot-to-codex', version: '0.3.0' } } });
   if (method === 'ping') return send({ id, result: {} });
   if (method === 'tools/list') return send({ id, result: { tools } });
   if (method === 'tools/call') {

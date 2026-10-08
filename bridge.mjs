@@ -3,10 +3,11 @@
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { connect, BINARY } from './codex.mjs';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes, timingSafeEqual, createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, STATE, PORT, BASE, call } from './bridge-client.mjs';
+import { projectRegistry } from './projects.mjs';
 
 const tokenPath = join(STATE, 'token');
 const discoveryPath = join(STATE, 'connection.json');
@@ -24,6 +25,7 @@ async function serve() {
   if (!existsSync(tokenPath)) privateWrite(tokenPath, randomBytes(32).toString('hex'));
   const token = loadToken();
   const jobs = Object.assign(Object.create(null), readJSON(dataPath, {}));
+  const projects = projectRegistry(STATE);
   for (const job of Object.values(jobs)) if (['starting', 'running'].includes(job.status)) job.status = 'interrupted';
   const save = () => { privateWrite(dataPath + '.tmp', JSON.stringify(jobs, null, 2)); renameSync(dataPath + '.tmp', dataPath); };
   save();
@@ -39,7 +41,8 @@ async function serve() {
     let finish;
     const done = new Promise(resolve => { finish = resolve; });
     try {
-      client = await connect(ROOT, msg => {
+      if (projects.get(job.projectId).cwd !== job.cwd) throw new Error('Task project identity changed; execution refused');
+      client = await connect(job.cwd, msg => {
         const params = msg.params || {};
         if (params.threadId !== job.threadId) return;
         if (msg.method === 'item/completed' && params.item?.type === 'agentMessage') {
@@ -56,7 +59,7 @@ async function serve() {
       clients.add(client);
       client.closed.then(() => { if (!settled) finish(); });
       const result = await client.request('thread/start', {
-        cwd: ROOT, historyMode: 'paginated', ephemeral: false,
+        cwd: job.cwd, historyMode: 'paginated', ephemeral: false,
         sandbox: 'read-only', approvalPolicy: 'never',
       });
       job.threadId = result.thread.id;
@@ -83,7 +86,8 @@ async function serve() {
     if (req.headers.origin || req.headers.host !== `127.0.0.1:${PORT}`) return reply(403, { error: 'Local CLI access only' });
     if (!equal(req.headers.authorization || '', `Bearer ${token}`)) return reply(401, { error: 'Unauthorized' });
     const path = req.url;
-    if (req.method === 'GET' && path === '/health') return reply(200, { alive: true, cwd: ROOT, binary: BINARY, userAgent: initialized.userAgent, mode: 'read-only' });
+    if (req.method === 'GET' && path === '/health') return reply(200, { alive: true, cwd: ROOT, binary: BINARY, userAgent: initialized.userAgent, mode: 'read-only', version: '0.3.0', projectSelection: 'registered-project-id' });
+    if (req.method === 'GET' && path === '/projects') return reply(200, projects.list());
     if (req.method === 'GET' && path === '/jobs') return reply(200, Object.values(jobs));
     const match = /^\/jobs\/([a-zA-Z0-9_-]+)$/.exec(path);
     if (req.method === 'GET' && match) return reply(jobs[match[1]] ? 200 : 404, jobs[match[1]] || { error: 'Unknown job' });
@@ -95,14 +99,21 @@ async function serve() {
       try { await openThread(job.threadId); return reply(200, job); }
       catch (error) { return reply(500, { error: error.message }); }
     }
-    if (req.method === 'POST' && path === '/jobs') {
+    if (req.method === 'POST' && (path === '/jobs' || path === '/projects')) {
       try {
         let body = '';
         for await (const chunk of req) { body += chunk; if (Buffer.byteLength(body) > 16384) return reply(413, { error: 'Body too large' }); }
         const input = JSON.parse(body);
+        if (path === '/projects') return reply(200, projects.register(input));
         if (typeof input.prompt !== 'string' || !input.prompt.trim() || typeof input.requestId !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(input.requestId)) return reply(400, { error: 'prompt and a stable requestId are required' });
-        if (jobs[input.requestId]) return reply(200, jobs[input.requestId]);
-        const job = { id: input.requestId, title: String(input.title || 'Chatbot → Codex Desktop 验证').slice(0, 100), status: 'starting', createdAt: new Date().toISOString(), messages: [] };
+        const project = projects.get(input.projectId);
+        if (input.title !== undefined && (typeof input.title !== 'string' || !input.title.trim())) return reply(400, { error: 'title must be nonempty text' });
+        const requestHash = createHash('sha256').update(JSON.stringify([project.id, project.cwd, input.prompt, input.title ?? null])).digest('hex');
+        if (jobs[input.requestId]) {
+          if (jobs[input.requestId].requestHash !== requestHash) return reply(409, { error: 'requestId already exists with different or legacy contents; retrieve the original task or use a new requestId for a new target' });
+          return reply(200, jobs[input.requestId]);
+        }
+        const job = { id: input.requestId, projectId: project.id, cwd: project.cwd, requestHash, title: String(input.title || 'Chatbot → Codex Desktop 验证').slice(0, 100), status: 'starting', createdAt: new Date().toISOString(), messages: [] };
         jobs[job.id] = job; save();
         void launch(job, input.prompt);
         return reply(202, job);
@@ -124,13 +135,16 @@ try {
   if (mode === 'serve') await serve();
   else if (mode === 'health') console.log(JSON.stringify(await call('/health'), null, 2));
   else if (mode === 'list') console.log(JSON.stringify(await call('/jobs'), null, 2));
+  else if (mode === 'projects') console.log(JSON.stringify(await call('/projects'), null, 2));
+  else if (mode === 'register-project') console.log(JSON.stringify(await call('/projects', { id: process.argv[3], cwd: process.argv[4], title: process.argv[5] }), null, 2));
   else if (mode === 'read' || mode === 'open') {
     const job = await call(`/jobs/${encodeURIComponent(process.argv[3])}${mode === 'open' ? '/open' : ''}`, mode === 'open' ? {} : undefined);
     console.log(JSON.stringify(job, null, 2));
   } else if (mode === 'submit') {
     const requestId = process.argv[3];
-    const prompt = process.argv[4];
-    const title = process.argv[5];
-    console.log(JSON.stringify(await call('/jobs', { requestId, prompt, title }), null, 2));
-  } else console.log('node bridge.mjs serve|health|list|submit REQUEST_ID PROMPT [TITLE]|read REQUEST_ID|open REQUEST_ID');
+    const projectId = process.argv[4];
+    const prompt = process.argv[5];
+    const title = process.argv[6];
+    console.log(JSON.stringify(await call('/jobs', { requestId, projectId, prompt, title }), null, 2));
+  } else console.log('node bridge.mjs serve|health|projects|register-project PROJECT_ID ABSOLUTE_PATH [TITLE]|list|submit REQUEST_ID PROJECT_ID PROMPT [TITLE]|read REQUEST_ID|open REQUEST_ID');
 } catch (error) { console.error(error.message); process.exitCode = 1; }

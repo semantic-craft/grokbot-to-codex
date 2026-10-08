@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
+import { projectRegistry } from '../projects.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 function mcp(env = {}) {
@@ -22,16 +23,16 @@ test('MCP initializes and advertises callable task tools without starting work',
     assert.equal(initialized.result?.protocolVersion, '2024-11-05');
     assert.equal(initialized.result.capabilities.tools.listChanged, false);
     const list = await client.request('tools/list');
-    assert.deepEqual(list.result.tools.map(t => t.name), ['submit_task', 'get_task', 'list_tasks', 'wait_task', 'open_in_desktop']);
+    assert.deepEqual(list.result.tools.map(t => t.name), ['list_projects', 'submit_task', 'get_task', 'list_tasks', 'wait_task', 'open_in_desktop']);
   } finally { client.close(); }
 });
 
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, mkdir, rename, symlink, writeFile, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import net from 'node:net';
 async function backend(t) {
-  const state = await mkdtemp(join(tmpdir(), 'bridge-contract-'));
+  const state = await realpath(await mkdtemp(join(tmpdir(), 'bridge-contract-')));
   const reservation = net.createServer();
   await new Promise(resolve => reservation.listen(0, '127.0.0.1', resolve));
   const port = reservation.address().port;
@@ -40,6 +41,7 @@ async function backend(t) {
   const child = spawn(process.execPath, ['bridge.mjs', 'serve'], { cwd: root, env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
   t.after(async () => { child.kill(); await new Promise(resolve => child.exitCode !== null ? resolve() : child.once('exit', resolve)); await rm(state, { recursive: true, force: true }); });
   await new Promise((resolve, reject) => { child.stdout.once('data', resolve); child.once('exit', () => reject(new Error('backend failed to start'))); });
+  await register(env, 'fixture-root', root);
   return { env, state, port };
 }
 async function tool(client, name, args = {}) {
@@ -49,12 +51,66 @@ async function tool(client, name, args = {}) {
 }
 const payload = result => JSON.parse(result.content[0].text);
 
+async function register(env, projectId, cwd, title = 'Fixture project') {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ['bridge.mjs', 'register-project', projectId, cwd, title], { cwd: root, env: { ...process.env, ...env } });
+    let out = '', err = '';
+    child.stdout.on('data', data => { out += data; }); child.stderr.on('data', data => { err += data; });
+    child.once('exit', code => {
+      if (code !== 0) return reject(new Error(err.trim()));
+      try { resolve(JSON.parse(out)); } catch { reject(new Error('Registration returned no project: ' + out.trim())); }
+    });
+  });
+}
+
+test('MCP routes a registered non-Git project to its real directory and rejects silent fallback', { timeout: 12000 }, async t => {
+  const { env, state } = await backend(t), target = join(state, '知产陪练室 教学展示');
+  await mkdir(target);
+  const project = await register(env, 'teaching', target, 'Teaching room');
+  const client = mcp(env); t.after(() => client.close());
+  assert.equal(project.cwd, target);
+  assert.ok(payload(await tool(client, 'list_projects')).some(p => p.id === project.id && p.cwd === target));
+  assert.equal((await tool(client, 'submit_task', { requestId: 'no-project', prompt: 'REPORT_ROUTING' })).isError, true);
+  assert.equal((await tool(client, 'submit_task', { requestId: 'unknown-project', projectId: 'unknown', prompt: 'REPORT_ROUTING' })).isError, true);
+  const args = { requestId: 'target-task', projectId: 'teaching', prompt: 'REPORT_ROUTING' };
+  const submitted = payload(await tool(client, 'submit_task', args));
+  assert.equal(submitted.cwd, target); assert.equal(submitted.projectId, 'teaching');
+  const completed = payload(await tool(client, 'wait_task', { taskId: args.requestId, timeoutMs: 5000 }));
+  assert.equal(completed.task.status, 'completed'); assert.ok(completed.task.releasedAt);
+  assert.deepEqual(JSON.parse(completed.task.messages[0]), { processCwd: target, threadCwd: target });
+  assert.equal(payload(await tool(client, 'submit_task', args)).threadId, completed.task.threadId);
+  assert.equal((await tool(client, 'submit_task', { ...args, prompt: 'Changed request' })).isError, true);
+  assert.equal(payload(await tool(client, 'list_tasks')).length, 1);
+});
+
+test('registration canonicalizes paths and rejects invalid or changed project identities before execution', { timeout: 12000 }, async t => {
+  const { env, state } = await backend(t), target = join(state, 'project'), alias = join(state, 'alias');
+  await mkdir(target); await symlink(target, alias);
+  const project = await register(env, 'canonical', alias);
+  assert.equal(project.cwd, target);
+  assert.deepEqual(projectRegistry(state).get('canonical'), project, 'project identity survives registry reload');
+  assert.deepEqual(await register(env, 'canonical', target), project);
+  await assert.rejects(register(env, 'relative', 'relative-path'), /absolute/);
+  const file = join(state, 'file'); await writeFile(file, 'fixture');
+  await assert.rejects(register(env, 'file', file), /directory/);
+  await assert.rejects(register(env, 'canonical', root), /different/);
+  // fixture-root is already registered by backend().
+  const client = mcp(env); t.after(() => client.close());
+  const args = { requestId: 'identity-task', projectId: 'canonical', prompt: 'REPORT_ROUTING' };
+  await tool(client, 'submit_task', args);
+  assert.equal((await tool(client, 'submit_task', { ...args, projectId: 'fixture-root' })).isError, true);
+  await tool(client, 'wait_task', { taskId: args.requestId, timeoutMs: 5000 });
+  await rename(target, target + '-moved'); await symlink(root, target);
+  assert.equal((await tool(client, 'submit_task', { ...args, requestId: 'retargeted' })).isError, true);
+  assert.equal(payload(await tool(client, 'list_tasks')).length, 1);
+});
+
 test('MCP task survives disconnect, wait timeout preserves execution, reconnect returns real result and released thread', { timeout: 12000 }, async t => {
   const { env } = await backend(t);
   const first = mcp(env);
   let second;
   t.after(() => { first.close(); second?.close(); });
-  const submitted = payload(await tool(first, 'submit_task', { requestId: 'disconnect-task', prompt: 'Return fixture result' }));
+  const submitted = payload(await tool(first, 'submit_task', { requestId: 'disconnect-task', projectId: 'fixture-root', prompt: 'Return fixture result' }));
   assert.equal(submitted.id, 'disconnect-task');
   assert.ok(['starting', 'running'].includes(submitted.status));
   const waiting = payload(await tool(first, 'wait_task', { taskId: submitted.id, timeoutMs: 10 }));
@@ -80,9 +136,9 @@ test('MCP distinguishes completed execution from release and rejects invalid inp
   const client = mcp(env);
   t.after(() => client.close());
   assert.equal((await tool(client, 'wait_task', { taskId: 'a', timeoutMs: 30001 })).isError, true);
-  assert.equal((await tool(client, 'submit_task', { requestId: '../a', prompt: 'bad' })).isError, true);
+  assert.equal((await tool(client, 'submit_task', { requestId: '../a', projectId: 'fixture-root', prompt: 'bad' })).isError, true);
   assert.equal((await tool(client, 'get_task', { taskId: 'unknown' })).isError, true);
-  await tool(client, 'submit_task', { requestId: 'release-task', prompt: 'Return fixture result' });
+  await tool(client, 'submit_task', { requestId: 'release-task', projectId: 'fixture-root', prompt: 'Return fixture result' });
   const terminal = payload(await tool(client, 'wait_task', { taskId: 'release-task', timeoutMs: 5000, untilReleased: false }));
   assert.equal(terminal.task.status, 'completed');
   assert.equal(terminal.task.releasedAt, undefined);
@@ -106,9 +162,9 @@ test('HTTP continues to reject unauthenticated and browser requests; existing CL
     child.on('exit', code => code === 0 ? resolve(JSON.parse(out)) : reject(new Error(err)));
   });
   assert.equal((await run(['health'])).alive, true);
-  const task = await run(['submit', 'cli-task', 'Return fixture result']);
+  const task = await run(['submit', 'cli-task', 'fixture-root', 'Return fixture result']);
   assert.equal(task.id, 'cli-task');
-  const repeat = await run(['submit', 'cli-task', 'Return fixture result']);
+  const repeat = await run(['submit', 'cli-task', 'fixture-root', 'Return fixture result']);
   assert.equal(repeat.id, task.id);
   assert.equal((await run(['list'])).length, 1);
 });
