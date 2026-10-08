@@ -52,7 +52,20 @@ Keep the terminal/session alive, record how to return to it, and check health fr
 
 The default local state directory is `<repoPath>/.bridge`. A pre-existing `BRIDGE_STATE_DIR` must be passed consistently to bridge, CLI and skill; do not silently switch it. If the chosen plugin location may be replaced by host updates, use an explicit stable state directory and preserve old records before a planned migration. This guide does not automatically migrate state. A port collision or mismatched health response calls for diagnosis, not killing an unrelated server or changing listener exposure.
 
-## 4. Register the skill in the chosen host
+## 4. Register target projects and the skill
+
+Version 0.3.0 requires an explicit registered `projectId` for every submission. The health `cwd` identifies the bridge installation; it is not the task directory. After updating, finish active tasks before restarting this installation, then check health reports `projectSelection: registered-project-id`.
+
+Register only the directory the user authorized on the selected Mac (non-Git directories are supported):
+
+```sh
+node bridge.mjs register-project chosen-project '/absolute/path/to/target/project' 'Project title'
+node bridge.mjs projects
+```
+
+Registration persists canonical paths in `.bridge/projects.json`. Query `list_projects` and match the user's target to its returned `id` and `cwd`; never select the plugin repository by default. Missing, unknown, moved or retargeted directories fail before execution. Old tasks remain readable; resubmitting a legacy request ID is refused because its original target cannot be verified.
+
+### Register the skill in the chosen host
 
 ### Grok Bot private skill
 
@@ -82,9 +95,9 @@ First run the credential-free protocol discovery check from the installation dir
 node scripts/mcp-smoke.mjs
 ```
 
-It should list submit/get/list/wait/open tools. It does not execute a model task. Then invoke the saved skill in a new host message:
+It should list project discovery plus submit/get/list/wait/open tools. It does not execute a model task. Then invoke the saved skill in a new host message:
 
-> to codex: on my Mac, submit a read-only task: do not call tools or read/write files; reply only CODEX_LOCAL_OK. Wait for the actual result and session release, then open that same conversation in official Codex Desktop.
+> to codex: on my Mac, in the target project I specified, submit a read-only task: do not call tools or read/write files; reply only CODEX_LOCAL_OK. Wait for the actual result and session release, then open that same conversation in official Codex Desktop.
 
 Use a fresh stable request ID once; retries keep that ID and identical prompt. Inspect the actual returned messages and `releasedAt`. `starting`/`running`, a wait timeout, or navigation acceptance alone are not success. Verify the Desktop displays the same thread's user message and answer; if you cannot inspect it, leave that check pending for the user. The read-only model call uses the user's normal Codex service and may consume usage.
 
@@ -100,6 +113,6 @@ For later updates, inspect local changes and the existing remote first. Use a no
 
 To uninstall, disable/remove only this host's verified `to codex` (Cursor: `to-codex`) skill/plugin and stop only its identified bridge terminal. Preserve or archive `.bridge` if the user wants task history; never remove Codex's own conversations, credentials, other plugins, or unrelated servers. Package removal and private-skill removal are separate actions.
 
-Current scope: macOS, read-only work inside the plugin directory, explicit result queries, released-thread Desktop handoff. Project selection, writing approvals, cancellation, resume, notification delivery and unattended service installation are not part of this MVP. No Windows support or Grok native-MCP installation is claimed. Marketplace publication is a separate reviewed process, not an outcome of these instructions.
+Current scope: macOS, read-only work in explicitly registered projects, explicit result queries, released-thread Desktop handoff. Writing approvals, queue scheduling, cancellation, resume, notification delivery and unattended service installation are not part of this release. No Windows support or Grok native-MCP installation is claimed. Marketplace publication is a separate reviewed process, not an outcome of these instructions.
 
 References: [Cursor plugin format and local loading](https://cursor.com/docs/reference/plugins), [Grok Bot private skills](https://docs.x.ai/grok-bot/skills-routines-and-automations).

@@ -41,7 +41,7 @@ The entire repository is the plugin root. Installing only the skill file omits i
 
 ## MVP boundaries
 
-Requires macOS, Node.js 22+ and an installed, signed-in official Codex Desktop. **Keep the bridge service running** in a local terminal; this release does not install automatic startup. Work is read-only and fixed to the plugin directory. Writing approvals, project selection, cancellation, resume, proactive notifications and Windows support are not included.
+Requires macOS, Node.js 22+ and an installed, signed-in official Codex Desktop. **Keep the bridge service running** in a local terminal; this release does not install automatic startup. Work is read-only in an explicitly selected registered project. The installation directory and task directory are separate; missing project selection is rejected. Writing approvals, queue scheduling, cancellation, resume, proactive notifications and Windows support are not included.
 
 Codex must finish and release a thread before Desktop takes it over. There is no simultaneous live control of the same conversation. A task and its result still reach the respective Codex and Grok model services; a local bridge does not mean offline inference.
 
