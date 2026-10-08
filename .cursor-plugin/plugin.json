@@ -2,7 +2,7 @@
   "name": "grokbot-to-codex",
   "displayName": "GrokBot to Codex",
   "version": "0.3.1",
-  "description": "Dispatch read-only Codex tasks on your Mac, retrieve actual results, and hand released sessions to official Codex Desktop.",
+  "description": "Integrate official Codex Desktop on your Mac: dispatch read-only work through its bundled runtime, retrieve results, and hand off released sessions. No separate Codex CLI installation.",
   "repository": "https://github.com/semantic-craft/grokbot-to-codex",
   "skills": "./plugins/grokbot-to-codex/skills",
   "author": {

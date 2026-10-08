@@ -1,6 +1,6 @@
 # Dr. CodexBot
 
-Bring Codex into your Grok Bot team. Dr. CodexBot receives supported assignments, retrieves actual Codex answers, and opens released conversations in Codex Desktop. Built on the **to codex** plugin. Independent community project; not an official OpenAI or xAI bot.
+Bring official **Codex Desktop** into your Grok Bot team, not a standalone Codex CLI workflow. Dr. CodexBot dispatches through Desktop's embedded app-server, retrieves actual answers, and opens released conversations in Desktop. No separate Codex CLI installation is required. Built on the **to codex** plugin. Independent community project; not an official OpenAI or xAI bot.
 
 ## Create your Bot
 

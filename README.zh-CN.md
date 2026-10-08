@@ -8,7 +8,7 @@
 
 我觉得 OpenAI Dots 还太早期，交互不好用，产品方向也不符合我想要的工作方式；但我仍然想保留 Codex。
 
-所以做了 **to codex**：在 Grok Bot 中派活，由**自己 Mac 上的 Codex** 执行，再查询实际状态和结果。需要审阅或接手时，释放会话后在官方 **Codex Desktop** 打开。
+所以做了 **to codex**：接入的是官方 **Codex Desktop，不是独立的 Codex CLI 工作流**。在 Grok Bot 中派活，由自己 Mac 上安装的 Desktop 内置 `app-server` 执行，使用其正常登录，再查询实际状态和结果；不需要另外安装 Codex CLI。需要审阅或接手时，释放会话后在 **Codex Desktop** 打开同一会话。桥与 Desktop 界面不会同时控制正在执行的会话。
 
 目前已经实现并验证的是**主动查询结果（pull）**；完成后自动推送消息、唤醒 Grok Bot 的 push 通知尚未实现。它是本机桥接工具，没有另做完整界面或多租户云服务。
 

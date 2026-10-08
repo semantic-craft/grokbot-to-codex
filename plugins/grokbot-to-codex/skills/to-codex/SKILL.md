@@ -1,11 +1,13 @@
 ---
 name: to-codex
-description: Use when the user says "to codex", assigns work to Codex, queries a Codex task, or requests handoff to official Codex Desktop. Dispatch read-only tasks and retrieve actual results on the user's configured Mac.
+description: Bring official Codex Desktop into Grok Bot or Cursor on the user's Mac, not a standalone Codex CLI workflow. Use for "to codex", read-only assignments, actual task results, or Desktop handoff.
 ---
 
 # to codex
 
 Use Grok Bot's local-computer Shell, or Cursor's terminal verified to run on the user's Mac, to call this package's task bridge. Native MCP registration is not required.
+
+This is an **official Codex Desktop integration, not a standalone Codex CLI workflow**. The bridge uses the executable and app-server shipped inside the user's installed Desktop application and its normal authentication. No separate Codex CLI installation is required. Dispatch runs through that embedded app-server; after release, the same conversation can be reviewed or continued in Desktop. Active tasks and the Desktop UI do not control a thread simultaneously.
 
 ## Setup and preflight
 

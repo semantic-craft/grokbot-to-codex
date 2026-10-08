@@ -4,6 +4,8 @@ When the user asks you to install this project, carry out the applicable steps b
 
 **Success:** the host discovers `to-codex`, a read-only task produces an actual Codex response, and its released thread can be read in official Codex Desktop. Report any unverified step separately.
 
+**Product target: official Codex Desktop, not a standalone Codex CLI workflow.** This bridge calls the app-server bundled with the installed Desktop application and uses its normal authentication. Do not require or install a separate Codex CLI package. Desktop handoff becomes available after the bridge releases the conversation; bridge execution does not imply that the Desktop UI is simultaneously running the task.
+
 ## 1. Identify the computer and prerequisites
 
 - **Grok Bot:** use `ListMachines` to identify the user's connected Mac. Every Shell call must explicitly target that machine. Confirm the user's choice if several machines are plausible. A cloud terminal is not a substitute.

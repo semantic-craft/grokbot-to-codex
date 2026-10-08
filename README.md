@@ -8,7 +8,7 @@
 
 OpenAI Dots feels too early for me. Its interaction and product direction do not fit how I want to work, but I still want Codex.
 
-**to codex** lets me use Grok Bot to dispatch read-only work to Codex on **my Mac** and query its actual status and results. Codex executes; official **Codex Desktop** is available for review and handoff after the conversation is released.
+**to codex integrates official Codex Desktop, not a standalone Codex CLI workflow.** It lets me use Grok Bot to dispatch read-only work on **my Mac** and query its actual status and results. The bridge calls the app-server executable bundled inside the installed Desktop application, using its normal authentication; no separate Codex CLI installation is required. After release, the same conversation is available in **Codex Desktop** for review and handoff. The bridge and Desktop UI do not control an active conversation simultaneously.
 
 Result retrieval is implemented and tested through explicit queries (pull). Automatic completion messages or waking Grok Bot through push notifications are not implemented. This is a local bridge, with no additional full interface or multi-tenant cloud service.
 
