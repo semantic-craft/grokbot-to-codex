@@ -10,7 +10,7 @@ When the user asks you to install this project, carry out the applicable steps b
 - **Cursor:** use a local macOS window and terminal; confirm the host and `uname -s` (`Darwin`). Stop if this is an SSH, container, or cloud workspace instead of the requested Mac.
 - **Another installation agent:** you may prepare this package locally, but use Grok Bot or Cursor's actual supported interface to register the skill. Do not claim the target host discovered it merely because files exist.
 
-Check `node --version`, `node -p process.execPath`, and Git availability using a non-login shell. Node.js 22+ is required. If prerequisites are missing, report them; do not install unrelated toolchains or request credentials in chat.
+Check `node --version`, `node -p process.execPath`, and Git availability using a non-login shell. Node.js 22+ is required; Git is optional when using the source archive below. If prerequisites are missing, report them and assist with their official installation flow within the user's authorization; do not install unrelated toolchains or request credentials in chat.
 
 Locate the user's installed official Codex Desktop and its embedded Codex executable. The tested default is `/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex`; app names and paths can differ. Confirm the actual executable with `--version`. If a nondefault path is needed, pass `CODEX_BINARY` to the bridge process. Authentication remains in the official application: ask the user to finish its normal sign-in if needed, never read or print authentication files.
 
@@ -25,6 +25,8 @@ For a new Grok Bot installation, the default is:
 ```sh
 git clone --branch main https://github.com/semantic-craft/grokbot-to-codex.git "$HOME/Projects/grokbot-to-codex"
 ```
+
+If Git is unavailable, use the public source archive on that Mac. Create a fresh staging directory, download `https://github.com/semantic-craft/grokbot-to-codex/archive/refs/heads/main.tar.gz` with HTTPS, and inspect the archive inventory before extraction. Reject absolute paths or parent-directory traversal. Extract into the staging directory, verify the root manifest and complete runtime, then move that root to the chosen unoccupied installation directory. Never extract over an existing installation or use an arbitrary download mirror. Updates to an archive installation use a freshly verified source copy, retain local state, and replace its runtime only after active tasks finish.
 
 For Cursor, use the selected complete repository as the local plugin source. In **Customize → Plugins → Add → From Local Repository**, select that repository root. A folder placed under `~/.cursor/plugins/local` may expose its skill without registering the plugin; check the Plugins view after import. Do not create a second copy merely for Cursor when the existing repository can be imported.
 

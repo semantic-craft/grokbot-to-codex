@@ -13,7 +13,7 @@ const files = [
   'README.md', 'README.zh-CN.md', 'INSTALL.md', 'PRIVACY.md', 'LICENSE',
   'assets/to-codex-logo.png', 'plugins/grokbot-to-codex/INSTALL.md',
   'plugins/grokbot-to-codex/skills/to-codex/SKILL.md',
-  'templates/dr-codexbot/PROFILE.md', 'templates/dr-codexbot/README.md',
+  'templates/dr-codexbot/PROFILE.md', 'templates/dr-codexbot/GETTING-STARTED.md', 'templates/dr-codexbot/README.md',
   'templates/dr-codexbot/export.json', 'test/mcp.test.mjs', 'test/distribution.test.mjs',
   'test/fixtures/app-server.mjs',
 ];

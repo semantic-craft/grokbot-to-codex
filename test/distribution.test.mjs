@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-test('distribution contains the runtime and portable source, excluding local state and acceptance records', async t => {
+test('clean distribution runs without the source checkout and excludes recipient state', { timeout: 15000 }, async t => {
   const dir = await mkdtemp(join(tmpdir(), 'to-codex-distribution-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const archive = join(dir, 'plugin.tgz');
@@ -27,6 +27,16 @@ test('distribution contains the runtime and portable source, excluding local sta
   assert.deepEqual(template.memory, []);
   assert.deepEqual(template.routines, []);
   assert.deepEqual(template.plugins, []);
+  assert.equal(template.skills[0].content, (await readFile(join(dir, 'templates/dr-codexbot/GETTING-STARTED.md'), 'utf8')).trim());
+  const genericSkill = await readFile(join(dir, 'plugins/grokbot-to-codex/skills/to-codex/SKILL.md'), 'utf8');
+  assert.equal(/[\u3400-\u9fff]/u.test(genericSkill), false, 'skill description and instructions are English');
+  // The extracted package has no .git, publisher state or repository plugin installation.
+  // Its fixture exercises the actual packaged bridge and MCP with a new target directory.
+  const { NODE_TEST_CONTEXT, ...coldEnv } = process.env;
+  const cold = spawnSync(process.execPath, ['--test', '--test-name-pattern=MCP routes a registered', 'test/mcp.test.mjs'], { cwd: dir, env: coldEnv, encoding: 'utf8', timeout: 10000 });
+  assert.equal(cold.status, 0, cold.stdout + cold.stderr);
+  assert.match(cold.stdout, /MCP routes a registered/);
+  assert.match(cold.stdout, /pass 1/);
   assert.equal(spawnSync(process.execPath, ['scripts/package-plugin.mjs', archive], { cwd: root }).status, 1, 'do not overwrite an existing release');
   const source = join(dir, 'scripts/package-plugin.mjs');
   const skill = join(dir, 'plugins/grokbot-to-codex/skills/to-codex/SKILL.md');

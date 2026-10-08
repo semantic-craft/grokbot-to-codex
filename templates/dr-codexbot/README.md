@@ -18,6 +18,8 @@ Then send:
 
 The Bot follows the [installation guide](../../INSTALL.md) and reuses the [existing skill](../../plugins/grokbot-to-codex/skills/to-codex/SKILL.md). Each recipient supplies their own connected Mac and normal Codex login. No machine ID, account token or publisher-specific path is part of this template source.
 
+The recipient does not need to preinstall this repository plugin. Include the generic [getting-started skill](GETTING-STARTED.md) in the imported template: it reads the public setup guide using the Bot's existing tools, installs or reuses the complete runtime on the recipient's Mac, and saves to codex before dispatch. Git is optional via the source-archive route. A connected Mac, Node.js 22+, official Codex Desktop and its normal sign-in are still prerequisites; import alone does not install executable code. Fresh-recipient Grok import remains a separate acceptance check.
+
 ## Use it
 
 - “In [my project path], ask Codex to explain how completed results are retrieved. Keep the task read-only.”
